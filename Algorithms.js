@@ -99,6 +99,23 @@ function addImageSourcesFunctions(scene) {
         return {tmin:tmin, PMin:PMin, faceMin:faceMin};
     }
     
+    scene.isInPolygon = function(point,face) {
+      	// TODO NC
+      	// find area of triangles made from the point to the rest of the face
+      
+      	// find area of the whole face
+      	scene.computeAreaOfTriangle(point,point,point);
+    }
+    
+    scene.computeAreaOfTriangle = function(p1, p2, p3) {
+      	// TODO NC
+      	var a = 1;
+      	var b = 2;
+      	var c = 3;
+      	var p = (a + b + c)/2.0;
+      	var area = Math.sqrt(p*(p-a)*(p-b)*(p-c));
+    }
+    
     //Purpose: Fill in the array scene.imsources[] with a bunch of source
     //objects.  It's up to you what you put in the source objects, but at
     //the very least each object needs a field "pos" describing its position
@@ -120,12 +137,75 @@ function addImageSourcesFunctions(scene) {
         //or you'll get its parent image.  This information can also be used later
         //when tracing back paths
         scene.imsources = [scene.source];
-        
-        //TODO: Fill the rest of this in.  Be sure to reflect images across faces
-        //in world coordinates, not the faces in the original mesh coordinates
-        //See the "rayIntersectFaces" function above for an example of how to loop
-        //through faces in a mesh
-        
+      
+      	for (var i = 1; i <= order; i++) {
+          	var sourceIndex = 0;
+          	while(sourceIndex<scene.imsources.length) {
+              //var
+              if (s.order == order - 1) {
+                var stack = [];
+		      	stack.push(scene);
+              	// go through every source, and for each source, find every face in the scene graph
+            	// check to make sure that the face we're on is not the genFace
+              	// if it's not, then find the reflected point and add it to the 
+              
+              	// pull a node off of the stack
+              	while(stack.length>0){
+                  	var node = stack.pop(); //get our node
+                  	console.log(node); // TODO delete... testing only
+                  	//Throw its children into a pile
+                  	if('children' in node){
+                    	for(var k=0;k<node.children.length;k++){
+                          stack.push(node.children[k]);
+                        }
+                    }                  	
+                  	//Now do some serious polygonal processing shit
+                  	if ('mesh' in node) {
+                      	var mesh = node.mesh;
+                        for (var i = 0; i < mesh.faces.length; i++) {
+                          	var face = mesh.faces[i];
+                            if (face == source.genFace) {
+                                continue;// don't re-reflect across the old genFace
+                            }
+                          	else {
+                              	var normal = face.getNormal(); // Normal of the face
+                              	var q = face.getCentroid(); // Arbitrary point on the face
+                              	var p = source.pos;
+                              	
+                              	// we need to make sure we're all in the world reference
+                              	
+                              	//var newSource = p - 2*(p-q)dotn * n;
+                              	var newSource = vec3.create();
+                                var t = vec3.create();
+                              	var t2 = vec3.create();
+                              	vec3.subtract(t, p, q);
+                                vec3.scale(t2, normal, vec3.dot(t, normal)*2);
+                              	vec3.subtract(newSource, p, t2);
+                              
+                              
+                              
+                              	var point = source.pos; //temp!!! this point should be the point that the original point is reflected over
+                              	if (scene.isInPolygon(point,face)) {
+                                  
+                                  	// TODO add the reflection to the list of points
+                                }
+								
+                                
+                                // "face" is a face we want to reflect over; it's made up of vertices & edges
+                              	// 1. find normal vector of face
+                              	// 2. find a vector from the point to the face
+                              	// 3. do the dot product equation to reflect over the polygon
+                              	// 4. check to make sure that the spot on the face reflected over is inside the polygon
+                              	
+                              
+                            }
+                        }
+                    }
+                    }
+                  					
+                }
+          	}
+        }        
     }    
     
     //Purpose: Based on the extracted image sources, trace back paths from the
