@@ -100,7 +100,8 @@ function addImageSourcesFunctions(scene) {
     }
     
     // Returns a boolean of whether the point lies within the convex polygon face
-    scene.isInPolygon = function(point,face) {
+    // e.g. point = [1, 2.6, 3.3]
+    scene.isInPolygon = function(point, face) {
       	var vertices = face.getVerticesPos();
       	var numVertices = vertices.length;
 
@@ -135,6 +136,8 @@ function addImageSourcesFunctions(scene) {
       	return area;
     }
     
+    // Returns the distance between two 3D points
+    // e.g. p1 = [1, 2.6, 3.3]
     scene.getDistBtwnPoints = function(p1, p2) {
       var a2 = Math.pow(p1[0]-p2[0],2);
       var b2 = Math.pow(p1[1]-p2[1],2);
@@ -212,11 +215,12 @@ function addImageSourcesFunctions(scene) {
                               	vec3.subtract(newSource, p, t2);
                               
                               
-                              
+
                               	var point = source.pos; //temp!!! this point should be the point that the original point is reflected over
                               	if (scene.isInPolygon(point,face)) {
-                                  
-                                  	// TODO add the reflection to the list of points
+                                  	// TODO: test
+                                  	var mirrorImage = {pos:newSource, order:order, parent:source, genFace:face, rcoeff:node.rcoeff};
+                                  	scene.imsources.push(mirrorImage);
                                 }
 								
                                 
