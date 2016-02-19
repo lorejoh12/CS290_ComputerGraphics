@@ -11,22 +11,57 @@
 //and be sure to only compute intersections which are inside of the polygon
 //(you can assume that all polygons are convex and use the area method)
 function rayIntersectPolygon(P0, V, vertices, mvMatrix) {
-    //TODO: Fill this in
-    
+  
+  	// If we have fewer than 3 points, we can't do this. Return null
+  	if(vertices.length<3){
+      return null;
+    }
+  
     //Step 1: Make a new array of vec3s which holds "vertices" transformed 
     //to world coordinates (hint: vec3 has a function "transformMat4" which is useful)
-
-    
+  	var worldVertices = [];
+	for(var i=0; i<vertices.length; i++){
+      var tempVertex = vec3.create();
+      vec3.transformMat4(tempVertex,vertices[i],mvMatrix);
+      worldVertices.push(tempVertex);
+    }
     //Step 2: Compute the plane normal of the plane spanned by the transformed vertices
-    
+  
+  	// Create 2 arbitrary vectors between points on plane. 
+  	var vec1 = vec3.create();
+  	var vec2 = vec3.create();
+  	vec3.subtract(vec1, vertices[0], vertices[1]);
+  	vec3.subtract(vec2, vertices[1], vertices[2]);
+    // Cross them to get our normal
+  	var normal = vec3.create();
+  	vec3.cross(normal,vec1,vec2);
     //Step 3: Perform ray intersect plane
     
+  	//First make sure V isn't parallel to the normal.  If it is, return null
+  	var vDotn = vec3.dot(V, normal);
+  	if(vDotn == 0){
+     	return null; 
+    }
+  
+  	// Calculate the distance along the ray where it intersects with the point at the normal base
+  	var qMinusP = vec3.create();
+  	vec3.subtract(qMinusP,vertices[0], P0);
+  	var t = vec3.dot(qMinusP, normal)/vDotn;
+  	
+  	// If t is negative, we're on the wrong side of the ray so we don't intersect
+  	if(t<0){
+      return null;
+    }
+
+  	//Get our point of intersection with the plane
+	var intersectionPoint = vec3.create();
+  	
     
     //Step 4: Check to see if the intersection point is inside of the transformed polygon
     //You can assume that the polygon is convex.  If you use the area test, you can
     //allow for some wiggle room in the two areas you're comparing (e.g. absolute difference
     //not exceeding 1e-4)
-    
+  	
     
     //Step 5: Return the intersection point if it exists or null if it's outside
     //of the polygon or if the ray is perpendicular to the plane normal (no intersection)
@@ -101,8 +136,8 @@ function addImageSourcesFunctions(scene) {
     
     // Returns a boolean of whether the point lies within the convex polygon face
     // e.g. point = [1, 2.6, 3.3]
-    scene.isInPolygon = function(point, face) {
-      	var vertices = face.getVerticesPos();
+    scene.isInPolygon = function(point, face, worldTransform) {
+      	var vertices = scene.getWorldCoordinateVertices(face, worldTransform);
       	var numVertices = vertices.length;
 
       	// find area of triangles made from the point to the rest of the face
@@ -121,6 +156,18 @@ function addImageSourcesFunctions(scene) {
       	// compare the two areas
 		var areaThreshold = 0.00001;
       	return Math.abs(pointTrianglesArea - faceArea) <= areaThreshold;
+    }
+    
+    // Returns the world coordinates of the vertices of a face given a world transform
+    scene.getWorldCoordinateVertices = function(face, worldTransform) {
+      	var rawVertices = face.getVerticesPos();
+      	var vertices = []
+        for (var i = 0; i < rawVertices.length; i++) {
+          	var temp = vec3.create();
+			vec3.transformMat4(temp, rawVertices[i], worldTransform);
+          	vertices.push(temp);
+        }
+      	return vertices;
     }
     
     // Returns the area of the triangle formed by points p1, p2, p3
@@ -166,6 +213,7 @@ function addImageSourcesFunctions(scene) {
         //Remember not to reflect an image across the face that just generated it, 
         //or you'll get its parent image.  This information can also be used later
         //when tracing back paths
+      	scene.worldTransform = mat4.create(); // create Identity matrix for initial scene transform
         scene.imsources = [scene.source];
       	// For all orders
       	for (var i = 1; i <= order; i++) {
@@ -188,6 +236,9 @@ function addImageSourcesFunctions(scene) {
                   	//Throw its children into a pile
                   	if('children' in node){
                     	for(var k=0;k<node.children.length;k++){
+                          node.children[k].worldTransform = mat4.create();
+							//Multiply on the right by the next transformation of the child node
+                          mat4.mul(node.children[k].worldTransform, node.worldTransform, node.children[k].transform);
                           stack.push(node.children[k]);
                         }
                     }                  	
@@ -201,41 +252,39 @@ function addImageSourcesFunctions(scene) {
                             }
                           	else {
                               	var normal = face.getNormal(); // Normal of the face
-                              	var q = face.getCentroid(); // Arbitrary point on the face
-                              	var p = source.pos;
-                              	
+                              	var tempCentroid = face.getCentroid(); // Arbitrary point on the face
+                              	var p = source.pos;                              	
+                              
                               	// we need to make sure we're all in the world reference
-                              	
-                              	//var newSource = p - 2*(p-q)dotn * n;
-                              	var newSource = vec3.create();
-                                var t = vec3.create();
-                              	var t2 = vec3.create();
-                              	vec3.subtract(t, p, q);
-                                vec3.scale(t2, normal, vec3.dot(t, normal)*2);
-                              	vec3.subtract(newSource, p, t2);
                               
+                              	var q = vec3.create();
                               
+                              	// transform by the worldTransform to get the world location of the centroid point
+                              	vec3.transformMat4(q, tempCentroid, node.worldTransform);
 
-                              	var point = source.pos; //temp!!! this point should be the point that the original point is reflected over
-                              	if (scene.isInPolygon(point,face)) {
-                                  	// TODO: test
-                                  	var mirrorImage = {pos:newSource, order:order, parent:source, genFace:face, rcoeff:node.rcoeff};
-                                  	scene.imsources.push(mirrorImage);
-                                }
-								
-                                
-                                // "face" is a face we want to reflect over; it's made up of vertices & edges
-                              	// 1. find normal vector of face
-                              	// 2. find a vector from the point to the face
-                              	// 3. do the dot product equation to reflect over the polygon
-                              	// 4. check to make sure that the spot on the face reflected over is inside the polygon
-                              	
+                              	//newSource = p - 2*(p-q)dotn * n;
+                              	var newSource = vec3.create();
+                                var pMinusQ = vec3.create();
+                              	var t1 = vec3.create();
+                              	vec3.subtract(pMinusQ, p, q);
+                                vec3.scale(t1, normal, vec3.dot(pMinusQ, normal)*2);
+                              	vec3.subtract(newSource, p, t1);
                               
+                              	// find the point of reflection 
+                              	// (the point on the plane of the face that is the midpoint of the source and the new source)
+                              	var t2 = vec3.create();
+                              	var pointOfReflection = vec3.create();
+                                vec3.scale(t2, normal, vec3.dot(pMinusQ, normal));
+                              	vec3.subtract(pointOfReflection, p, t2);
+
+                              	// create the mirror image source and push it to the list of sources
+                              	var mirrorImage = {pos:newSource, order:order, parent:source, genFace:face, rcoeff:node.rcoeff};
+                                scene.imsources.push(mirrorImage);
+                              	
                             }
                         }
                     }
-                    }
-                  					
+                  }
                 }
           	}
         }        
