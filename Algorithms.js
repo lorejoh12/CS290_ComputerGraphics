@@ -103,17 +103,36 @@ function addImageSourcesFunctions(scene) {
       	// TODO NC
       	// find area of triangles made from the point to the rest of the face
       
+      	var numVertices = face.getVertices().length;
+      
+      	//var area = scene.computeAreaOfTriangle(point, 
+      
+      	for (int i = 0; i < face.getVertices().length; i++) {
+          	
+        }
+      
       	// find area of the whole face
       	scene.computeAreaOfTriangle(point,point,point);
     }
     
     scene.computeAreaOfTriangle = function(p1, p2, p3) {
       	// TODO NC
-      	var a = 1;
-      	var b = 2;
-      	var c = 3;
+      	var a = scene.getDistBtwnPoints(p1,p2);
+      	var b = scene.getDistBtwnPoints(p2,p3);
+      	var c = scene.getDistBtwnPoints(p1,p3);
+      
       	var p = (a + b + c)/2.0;
       	var area = Math.sqrt(p*(p-a)*(p-b)*(p-c));
+      	
+      	return area;
+    }
+    
+    scene.getDistBtwnPoints = function(p1,p2) {
+      var a = Math.pow(p1[0]-p2[0],2);
+      var b = Math.pow(p1[1]-p2[1],2);
+      var c = Math.pow(p1[2]-p2[2],2);
+      
+      return Math.sqrt(a + b + c);
     }
     
     //Purpose: Fill in the array scene.imsources[] with a bunch of source
@@ -137,12 +156,14 @@ function addImageSourcesFunctions(scene) {
         //or you'll get its parent image.  This information can also be used later
         //when tracing back paths
         scene.imsources = [scene.source];
-      
+      	// For all orders
       	for (var i = 1; i <= order; i++) {
+          	// Go through all the sources
           	var sourceIndex = 0;
           	while(sourceIndex<scene.imsources.length) {
-              //var
-              if (s.order == order - 1) {
+              var source = scene.imsources[sourceIndex];
+              sourceIndex++;
+              if (source.order == order - 1) {
                 var stack = [];
 		      	stack.push(scene);
               	// go through every source, and for each source, find every face in the scene graph
