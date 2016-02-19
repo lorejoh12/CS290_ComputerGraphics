@@ -99,24 +99,32 @@ function addImageSourcesFunctions(scene) {
         return {tmin:tmin, PMin:PMin, faceMin:faceMin};
     }
     
+    // Returns a boolean of whether the point lies within the convex polygon face
     scene.isInPolygon = function(point,face) {
-      	// TODO NC
+      	var vertices = face.getVerticesPos();
+      	var numVertices = vertices.length;
+
       	// find area of triangles made from the point to the rest of the face
-      
-      	var numVertices = face.getVertices().length;
-      
-      	//var area = scene.computeAreaOfTriangle(point, 
-      
-      	for (int i = 0; i < face.getVertices().length; i++) {
-          	
+      	var pointTrianglesArea = scene.computeAreaOfTriangle(point, vertices[numVertices-1], vertices[0]);
+      	for (var i = 0; i < numVertices - 1; i++) {
+          	pointTrianglesArea += scene.computeAreaOfTriangle(point, vertices[i], vertices[i+1]);
         }
       
       	// find area of the whole face
-      	scene.computeAreaOfTriangle(point,point,point);
+      	var faceArea = 0;
+      	var chosenPoint = vertices[numVertices-1];
+      	for (var i = 0; i < numVertices - 2; i++) {
+         	 faceArea += scene.computeAreaOfTriangle(chosenPoint, vertices[i], vertices[i+1]);
+        }
+      	
+      	// compare the two areas
+		var areaThreshold = 0.00001;
+      	return Math.abs(pointTrianglesArea - faceArea) <= areaThreshold;
     }
     
+    // Returns the area of the triangle formed by points p1, p2, p3
+    // e.g. p1 = [1, 2.6, 3.3]
     scene.computeAreaOfTriangle = function(p1, p2, p3) {
-      	// TODO NC
       	var a = scene.getDistBtwnPoints(p1,p2);
       	var b = scene.getDistBtwnPoints(p2,p3);
       	var c = scene.getDistBtwnPoints(p1,p3);
@@ -127,12 +135,12 @@ function addImageSourcesFunctions(scene) {
       	return area;
     }
     
-    scene.getDistBtwnPoints = function(p1,p2) {
-      var a = Math.pow(p1[0]-p2[0],2);
-      var b = Math.pow(p1[1]-p2[1],2);
-      var c = Math.pow(p1[2]-p2[2],2);
+    scene.getDistBtwnPoints = function(p1, p2) {
+      var a2 = Math.pow(p1[0]-p2[0],2);
+      var b2 = Math.pow(p1[1]-p2[1],2);
+      var c2 = Math.pow(p1[2]-p2[2],2);
       
-      return Math.sqrt(a + b + c);
+      return Math.sqrt(a2 + b2 + c2);
     }
     
     //Purpose: Fill in the array scene.imsources[] with a bunch of source
