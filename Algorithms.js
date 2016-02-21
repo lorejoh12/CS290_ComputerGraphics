@@ -1,4 +1,4 @@
-//Purpose: A file that holds the code that students fill in
+2//Purpose: A file that holds the code that students fill in
 
 
 //Given a ray described by an initial point P0 and a direction V both in
@@ -365,7 +365,7 @@ function addImageSourcesFunctions(scene) {
 					
 					var dot1 = vec3.dot(dirVector, face.getNormal());
 					var dot2 = vec3.dot(oldCurrentDir, face.getNormal());
-					if (path.length>=2 && Math.abs(dot1-dot2) > THRESHOLD){
+					if (Math.abs(dot1-dot2) > THRESHOLD){
 					  continue;
 					}
 				}
