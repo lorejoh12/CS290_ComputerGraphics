@@ -146,6 +146,8 @@ function addImageSourcesFunctions(scene) {
         if ('mesh' in node) { //Make sure it's not just a dummy transformation node
             var mesh = node.mesh;
             for (var f = 0; f < mesh.faces.length; f++) {
+            	//Add the reflection coefficient to the face if it wasn't there before
+            	mesh.faces[f].rcoeff = node.rcoeff;
                 if (mesh.faces[f] == excludeFace) {
                     continue;//Don't re-intersect with the face this point lies on
                 }
@@ -421,10 +423,10 @@ function addImageSourcesFunctions(scene) {
         	var distance = 0;
         	var magnitude = 1;
         	for (var j=0;j<path.length-1;j++){
-        		var bounceDist=Math.abs(getDistBtwnPoints(path[i].pos,path[i+1].pos))
+        		var bounceDist=Math.abs(getDistBtwnPoints(path[j].pos,path[j+1].pos))
         		distance+=bounceDist;
         		magnitude*=1/Math.pow(1+bounceDist,diss);// Magnitude loss through space 1/(1+r)^p
-        		magnitude*=path[i+1].rcoeff; // Reflection magnitude loss
+        		magnitude*=path[j+1].rcoeff; // Reflection magnitude loss
         	}
         	//Calculate our sample number
         	var sampleNumber = Math.round(distance/SVel*Fs) // meters/(meters/second)*(samples/second) = samples
