@@ -242,7 +242,6 @@ function addImageSourcesFunctions(scene) {
               	// pull a node off of the stack
               	while(stack.length>0){
                   	var node = stack.pop(); //get our node
-                  	console.log(node); // TODO delete... testing only
                   	//Throw its children into a pile
                   	if('children' in node){
                     	for(var k=0;k<node.children.length;k++){
@@ -331,14 +330,6 @@ function addImageSourcesFunctions(scene) {
       	for (var i=0; i<=scene.maxOrder;i++){
       		scene.checkForSourcePath(scene.receiver.pos,null,i,path);
         }
-
-        //TODO: Finish this. Extract the rest of the paths by backtracing from
-        //the image sources you calculated.  Return an array of arrays in
-        //scene.paths.  Recursion is highly recommended
-        //Each path should start at the receiver and end at the source
-        //(or vice versa), so scene.receiver should be the first element 
-        //and scene.source should be the last element of every array in 
-        //scene.paths
     }
     
     // Recursive function for path checking.
@@ -400,12 +391,13 @@ function addImageSourcesFunctions(scene) {
 				var hitSource = (intersect == null || getDistBtwnPoints(point, scene.source.pos) < getDistBtwnPoints(point, intersect.PMin)) && (source == scene.source);
 				if (hitSource) {
 					var newPath = path.slice(0);
-					newPath.push({pos:scene.source.pos});
+					newPath.push({pos:scene.source.pos,rcoeff:scene.source.rcoeff});
 					scene.checkForSourcePath(scene.source.pos, null, order-1, newPath);
 				}
               	else if (intersect != null && intersect.faceMin == source.genFace) {
 					var newPath = path.slice(0);
-					newPath.push({pos:intersect.PMin});
+
+					newPath.push({pos:intersect.PMin, rcoeff:((face==null)?1:face.rcoeff)});
 					scene.checkForSourcePath(intersect.PMin, intersect.faceMin, order-1, newPath);
 				}
             }
@@ -416,14 +408,33 @@ function addImageSourcesFunctions(scene) {
     //Inputs: Fs: Sampling rate (samples per second)
     scene.computeImpulseResponse = function(Fs) {
         var SVel = 340;//Sound travels at 340 meters/second
-        //TODO: Finish this.  Be sure to scale each bounce by 1/(1+r^p), 
-        //where r is the length of the line segment of that bounce in meters
-        //and p is some integer less than 1 (make it smaller if you want the 
-        //paths to attenuate less and to be more echo-y as they propagate)
-        //Also be sure to scale by the reflection coefficient of each material
-        //bounce (you should have stored this in extractPaths() if you followed
-        //those directions).  Use some form of interpolation to spread an impulse
-        //which doesn't fall directly in a bin to nearby bins
-        //Save the result into the array scene.impulseResp[]
+        var diss = 0.001; // Dissipation of energy through space
+        var pathResults = [] // An array of {magnitude:endMagnitude,sample:SampleNumberOfCollision} for each path
+        var largestSampleNumber = 0;
+        // Go through all the paths and calculate their index and magnitude
+        for (var i=0; i<scene.paths.length; i++)
+        {
+        	var path = scene.paths[i];
+        	var distance = 0;
+        	var magnitude = 1;
+        	for (var j=0;j<path.length-1;j++){
+        		var bounceDist=Math.abs(getDistBtwnPoints(path[i].pos,path[i+1].pos))
+        		distance+=bounceDist;
+        		magnitude*=1/Math.pow(1+bounceDist,diss);// Magnitude loss through space 1/(1+r)^p
+        		magnitude*=path[i+1].rcoeff; // Reflection magnitude loss
+        	}
+        	//Calculate our sample number
+        	var sampleNumber = Math.round(distance/SVel*Fs) // meters/(meters/second)*(samples/second) = samples
+        	//Make sure we're traking our largest sample number
+        	if(sampleNumber>largestSampleNumber){
+        		largestSampleNumber = sampleNumber;
+        	}
+        	pathResults.push({magnitude:magnitude,sample:sampleNumber});
+        }
+        //Create our impulse array
+      	scene.impulseResp = new Float32Array(largestSampleNumber+1);
+      	for(var i=0;i<pathResults.length;i++){
+      		scene.impulseResp[pathResults[i].sample]+=pathResults[i].magnitude;
+      	}
     }
 }
