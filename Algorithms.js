@@ -268,18 +268,15 @@ function addImageSourcesFunctions(scene) {
                               
                               	var q = vec3.create();
 								var normal = vec3.create();
+								var normalTransform = mat3.create();
+								
+								mat3.normalFromMat4(normalTransform, node.worldTransform);
 								
                               	// transform by the worldTransform to get the world location of the centroid point
                               	vec3.transformMat4(q, tempCentroid, node.worldTransform);
-								var rotationalMatrix = node.worldTransform.slice(0);
-								rotationalMatrix[12] = 0;
-								rotationalMatrix[13] = 0;
-								rotationalMatrix[14] = 0;
-                              	vec3.transformMat4(normal, tempNormal, rotationalMatrix);
+                              	vec3.transformMat3(normal, tempNormal, normalTransform);
 								
 								vec3.normalize(normal, normal);
-
-								//normal = tempNormal;
 								
                               	//newSource = p - 2*(p-q)dotn * n;
                               	var newSource = vec3.create();
@@ -366,16 +363,22 @@ function addImageSourcesFunctions(scene) {
 					vec3.normalize(oldCurrentDir, oldCurrentDir);
 					
 					var normal = vec3.create();
+					var crossVector = vec3.create();
 					var tempNormal = face.getNormal();
-					var rotationalMatrix = face.worldTransform.slice(0);
-					rotationalMatrix[12] = 0;
-					rotationalMatrix[13] = 0;
-					rotationalMatrix[14] = 0;
-					vec3.transformMat4(normal, tempNormal, rotationalMatrix);
+					var normalRotation = mat3.create();
+										
+					mat3.normalFromMat4(normalRotation, face.worldTransform);
+					vec3.transformMat3(normal, tempNormal, normalRotation);
+					
+					vec3.cross(crossVector, oldCurrentDir, normal);
 					
 					var dot1 = vec3.dot(dirVector, normal);
 					var dot2 = vec3.dot(oldCurrentDir, normal);
-					if (Math.abs(dot1-dot2) > THRESHOLD){
+					var dot3 = vec3.dot(crossVector, dirVector);
+					if (Math.abs(dot1-dot2) > THRESHOLD || Math.abs(dot3) > THRESHOLD){
+					
+					//if (Math.abs(dot1-dot2) > THRESHOLD){
+
 					  continue;
 					}
 				}
