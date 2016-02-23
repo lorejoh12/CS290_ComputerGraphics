@@ -52,11 +52,32 @@ function parseNode(node) {
         }
     }
 }
-
+//Given the receiver camera, update its orientation
+//This was created for stereo sound
+function updateReceiverOrientation(receiver){
+    var rotationMatrix = mat4.clone(receiver.getMVMatrix()); // Get the camera's rotation matrix
+    mat4.invert(rotationMatrix,rotationMatrix);//Invert it because it's inverted by default
+    receiver.rotationTransformation = rotationMatrix;
+}
+// Note: this was modified for the stereo sound
 function setupScene(scene, glcanvas) {
     //Setup camera objects for the source and receiver
     var rc = new FPSCamera(0, 0, 0.75);
     rc.pos = vec3.fromValues(scene.receiver[0], scene.receiver[1], scene.receiver[2]);
+    //Create the transformation matrices for the ears. The average ear spacing is 0.215 m
+    rc.leftTransformation = vec3.fromValues(-0.1075,0,0);
+    rc.rightTransformation = vec3.fromValues(0.1075,0,0);
+    rc.getLeftEarPos = function(){
+        var earPosition = this.leftTransformation.slice(0); //Start with the left ear offset
+        vec3.transformMat4(earPosition, earPosition, this.rotationTransformation); //Rotate it
+        return earPosition;
+    }
+    rc.getRightEarPos = function(){
+        var earPosition = this.rightTransformation.slice(0); // Start with the right ear offset
+        vec3.transformMat4(earPosition, earPosition, this.rotationTransformation); //Rotate it
+        return earPosition;
+    }
+
     var sc = new FPSCamera(0, 0, 0.75);
     sc.pos = vec3.fromValues(scene.source[0], scene.source[1], scene.source[2]);
     
@@ -79,7 +100,6 @@ function setupScene(scene, glcanvas) {
     sc.rcoeff = 1.0;
     scene.receiver = rc;
     scene.source = sc;
-    
     //Now recurse and setup all of the children nodes in the tree
     for (var i = 0; i < scene.children.length; i++) {
         parseNode(scene.children[i]);
@@ -205,6 +225,7 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
             }
         }
     }
+
     
     glcanvas.repaint = function() {
         glcanvas.light1Pos = glcanvas.camera.pos;
@@ -222,10 +243,15 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
                 glcanvas.repaintRecurse(scene.children[i], pMatrix, mvMatrix);
             }
         }
+        //If our current camera is the receiver, update the rotation matrix value of the receiver
+        updateReceiverOrientation(glcanvas.scene.receiver);
         
         //Draw the source, receiver, and third camera
         if (!(glcanvas.camera == glcanvas.scene.receiver)) {
             drawBeacon(glcanvas, pMatrix, mvMatrix, glcanvas.scene.receiver, glcanvas.beaconMesh, vec3.fromValues(1, 0, 0));
+            //Draw the left and right ears in yellow.
+            drawBeacon(glcanvas, pMatrix, mvMatrix, {pos:glcanvas.scene.receiver.getLeftEarPos()}, glcanvas.beaconMesh, vec3.fromValues(1,1,0));
+            drawBeacon(glcanvas, pMatrix, mvMatrix, {pos:glcanvas.scene.receiver.getRightEarPos()}, glcanvas.beaconMesh, vec3.fromValues(1,1,0));
         }
         if (!(glcanvas.camera == glcanvas.scene.source)) {
             drawBeacon(glcanvas, pMatrix, mvMatrix, glcanvas.scene.source, glcanvas.beaconMesh, vec3.fromValues(0, 0, 1));
@@ -255,17 +281,18 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
         glcanvas.drawer.repaint(pMatrix, mvMatrix);
         
         //Redraw if walking
-        if (glcanvas.movelr != 0 || glcanvas.moveud != 0 || glcanvas.movefb != 0) {
+        if (glcanvas.movelr != 0 || glcanvas.moveud != 0 || glcanvas.movefb != 0 ) {
             var thisTime = (new Date()).getTime();
             var dt = (thisTime - glcanvas.lastTime)/1000.0;
             glcanvas.lastTime = thisTime;
             glcanvas.camera.translate(0, 0, glcanvas.movefb, glcanvas.walkspeed*dt);
             glcanvas.camera.translate(0, glcanvas.moveud, 0, glcanvas.walkspeed*dt);
             glcanvas.camera.translate(glcanvas.movelr, 0, 0, glcanvas.walkspeed*dt);
-            updateBeaconsPos(); //Update HTML display of vector positions
             requestAnimFrame(glcanvas.repaint);
+            updateBeaconsPos(); //Update HTML display of vector positions
         }
     }
+
     
     /////////////////////////////////////////////////////////////////
     //Step 2: Setup mouse and keyboard callbacks for the camera
@@ -398,14 +425,32 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
     
     glcanvas.extractPaths = function() {
         console.log("Extracting paths source to receiver");
+        //Note: This is a hacky solution... I'm moving the receiver and recalculating then moving it back in order to not have to change code
+        var actualPosition = glcanvas.scene.receiver.pos;
+        //Do left ear
+        glcanvas.scene.receiver.pos = glcanvas.scene.receiver.getLeftEarPos();
         glcanvas.scene.extractPaths();
+        scene.leftPaths = scene.paths;
+        //Do right ear
+        glcanvas.scene.receiver.pos = glcanvas.scene.receiver.getRightEarPos();
+        glcanvas.scene.extractPaths();
+        scene.rightPaths = scene.paths;
+        //Reset position
+        glcanvas.scene.receiver.pos = actualPosition;
         //Fill in buffers for path drawer
         glcanvas.pathDrawer.reset();
-        for (var i = 0; i < glcanvas.scene.paths.length; i++) {
-            var path = glcanvas.scene.paths[i];
+        for (var i = 0; i < glcanvas.scene.leftPaths.length; i++) {
+            var path = glcanvas.scene.leftPaths[i];
             for (var j = 0; j < path.length-1; j++) {
                 //Draw all of the paths as a sequence of red line segments
                 glcanvas.pathDrawer.drawLine(path[j].pos, path[j+1].pos, vec3.fromValues(1, 0, 0));
+            }
+        }
+        for (var i = 0; i < glcanvas.scene.rightPaths.length; i++) {
+            var path = glcanvas.scene.rightPaths[i];
+            for (var j = 0; j < path.length-1; j++) {
+                //Draw all of the paths as a sequence of green line segments
+                glcanvas.pathDrawer.drawLine(path[j].pos, path[j+1].pos, vec3.fromValues(0, 1, 0));
             }
         }
         requestAnimFrame(glcanvas.repaint);
@@ -414,31 +459,58 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
     glcanvas.computeImpulseResponse = function() {
         console.log("Computing impulse response");
         //Step 1: Call student code
+        //Compute left impulse response
+        glcanvas.scene.paths = glcanvas.scene.leftPaths;
         glcanvas.scene.computeImpulseResponse(globalFs);
+        glcanvas.scene.leftImpulseResp = glcanvas.scene.impulseResp;
+        //Compute right impulse response
+        glcanvas.scene.paths = glcanvas.scene.rightPaths;
+        glcanvas.scene.computeImpulseResponse(globalFs);
+        glcanvas.scene.rightImpulseResp = glcanvas.scene.impulseResp;
+        //Compute right impulse response
         if (scene.impulseResp.length == 0) {
             return; //Student hasn't filled in yet.  Exit gracefully
         }
         
         //Step 2: Plot the impulse response as a stem plot with milliseconds on the x-axis
         //and magnitude on the y-axis
-        console.log("impulseResp.length = " + scene.impulseResp.length);
+        console.log("Left impulseResp.length = " + scene.leftImpulseResp.length);
         data = [];
-        for (var i = 0; i < scene.impulseResp.length; i++) {
-            var gamma = scene.impulseResp[i];
+        for (var i = 0; i < scene.leftImpulseResp.length; i++) {
+            var gamma = scene.leftImpulseResp[i];
             if (gamma > 0) {
                 data.push({x:[1000*i/globalFs, 1000*i/globalFs], y:[0, gamma], mode:'lines+markers'});
             }
         }
-        Plotly.newPlot('impulsePlot', data, {xaxis:{title:'Time (Milliseconds)'}, yaxis:{title:'Magnitude'}});
+        Plotly.newPlot('leftImpulsePlot', data, {xaxis:{title:'Time (Milliseconds)'}, yaxis:{title:' Left Magnitude'}});
+
+        console.log("Right impulseResp.length = " + scene.rightImpulseResp.length);
+        data = [];
+        for (var i = 0; i < scene.rightImpulseResp.length; i++) {
+            var gamma = scene.rightImpulseResp[i];
+            if (gamma > 0) {
+                data.push({x:[1000*i/globalFs, 1000*i/globalFs], y:[0, gamma], mode:'lines+markers'});
+            }
+        }
+        Plotly.newPlot('rightImpulsePlot', data, {xaxis:{title:'Time (Milliseconds)'}, yaxis:{title:' Right Magnitude'}});
         
+        //TODO fix this up...
         //Step 3: Create a new audio buffer and copy over the data
         //https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/createBuffer
-        impbuffer = context.createBuffer(1, scene.impulseResp.length, globalFs);
+        //Stereo sound has 2 channels to create a 2 channel buffer
+        var impbuffer = context.createBuffer(2, Math.max(scene.leftImpulseResp.length,scene.rightImpulseResp.length), globalFs);
+        //Populate the left channel
         var impsamples = impbuffer.getChannelData(0);
-        for (var i = 0; i < scene.impulseResp.length; i++) {
-            impsamples[i] = scene.impulseResp[i];
+        for (var i = 0; i < scene.leftImpulseResp.length; i++) {
+            impsamples[i] = scene.leftImpulseResp[i];
+        }
+        //Populate the right channel
+        impsamples = impbuffer.getChannelData(1);
+        for (var i = 0; i < scene.rightImpulseResp.length; i++) {
+            impsamples[i] = scene.rightImpulseResp[i];
         }
         requestAnimFrame(glcanvas.repaint);
+        return impbuffer;
     }
 
 

@@ -1,4 +1,4 @@
-2//Purpose: A file that holds the code that students fill in
+//Purpose: A file that holds the code that students fill in
 
 
 //Given a ray described by an initial point P0 and a direction V both in
@@ -10,6 +10,8 @@
 //Be sure to compute the plane normal only after you have transformed the points,
 //and be sure to only compute intersections which are inside of the polygon
 //(you can assume that all polygons are convex and use the area method)
+
+//Note: Stereo sound has been completed for this assignment. All modifications for this to run are contained in SceneFile.js
 function rayIntersectPolygon(P0, V, vertices, mvMatrix) {
   
   	// If we have fewer than 3 points, we can't do this. Return null
@@ -248,12 +250,12 @@ function addImageSourcesFunctions(scene) {
                   	if('children' in node){
                     	for(var k=0;k<node.children.length;k++){
                           node.children[k].worldTransform = mat4.create();
-							//Multiply on the right by the next transformation of the child node
+							            //Multiply on the right by the next transformation of the child node
                           mat4.mul(node.children[k].worldTransform, node.worldTransform, node.children[k].transform);
                           stack.push(node.children[k]);
                         }
                     }                  	
-                  	//Now do some serious polygonal processing shit
+                  	//Now do some serious polygonal processing
                   	if ('mesh' in node) {
                       	var mesh = node.mesh;
                         for (var i = 0; i < mesh.faces.length; i++) {
@@ -324,7 +326,7 @@ function addImageSourcesFunctions(scene) {
     //Don't forget the direct path from source to receiver!
     scene.extractPaths = function() {
         scene.paths = [];
-      	var path = [scene.receiver];
+      	var path = [{pos:scene.receiver.pos,rcoeff:scene.receiver.rcoeff}];
       	// Check all possible orders of paths
       	for (var i=0; i<=scene.maxOrder;i++){
       		scene.checkForSourcePath(scene.receiver.pos,null,i,path);
