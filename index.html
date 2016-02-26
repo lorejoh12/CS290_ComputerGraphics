@@ -37,10 +37,10 @@
 <table><tr><td>
 <canvas id="GLCanvas1" style="border: none;" width="800" height="600"></canvas>
 <center><h3>Impulse Response</h3></center>
-<div id="impulsePlot"></div>
-
+<div id="leftImpulsePlot"></div>
+<div id="rightImpulsePlot"></div>
 </td>
-<td>
+<td valign="top">
 
 <h3>Scene</h3>
 <table>
@@ -105,6 +105,11 @@
 
 
 <script>
+    var source = null;
+    var analyser = null;
+    var buffer = null;
+    var impbuffer = null;
+    var convbuffer = null;
     var glcanvas = document.getElementById("GLCanvas1");
     glcanvas.addEventListener("contextmenu", function(e){ e.stopPropagation(); e.preventDefault(); return false; }); //Need this to disable the menu that pops up on right clicking
     //loadSceneFromFile('CityScene.scn', glcanvas);
@@ -165,16 +170,13 @@
         glcanvas.extractPaths();
     }
     function callComputeImpulseResponse() {
-        glcanvas.computeImpulseResponse();
+        impbuffer = glcanvas.computeImpulseResponse();
+        console.log(impbuffer);
     }
     ///////////////////////////////////////////
     //             Audio stuff               //
     ///////////////////////////////////////////
-    var source = null;
-    var analyser = null;
-    var buffer = null;
-    var impbuffer = null;
-    var convbuffer = null;
+   
     var context = new (window.AudioContext || window.webkitAudioContext)();
     function playAudioSource() {
         playAudio(buffer);
@@ -231,7 +233,7 @@
     });
 
     function recomputeConv() {
-        doConvolution(buffer, impbuffer);
+        doConvolution(buffer, impbuffer,2);
     }
 </script>
 
