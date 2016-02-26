@@ -1,4 +1,4 @@
-2//Purpose: A file that holds the code that students fill in
+//Purpose: A file that holds the code that students fill in
 
 
 //Given a ray described by an initial point P0 and a direction V both in

@@ -179,6 +179,7 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
     glcanvas.scene.receiver.pixWidth = pixWidth;
     glcanvas.scene.receiver.pixHeight = pixHeight;
     glcanvas.externalCam = new FPSCamera(pixWidth, pixHeight, 0.75);
+    //glcanvas.externalCam.pos = vec3.fromValues(-94, 15, 30);
     glcanvas.externalCam.pos = vec3.fromValues(0, 1.5, 0);
     glcanvas.walkspeed = 2.5;//How many meters per second
     glcanvas.lastTime = (new Date()).getTime();
@@ -330,21 +331,27 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
     glcanvas.keyDown = function(evt) {
         if (evt.keyCode == 87) { //W
             glcanvas.movefb = 1;
+            //glcanvas.movefb = 20;
         }
         else if (evt.keyCode == 83) { //S
             glcanvas.movefb = -1;
+            //glcanvas.movefb = -20;
         }
         else if (evt.keyCode == 65) { //A
             glcanvas.movelr = -1;
+            //glcanvas.movelr = -20;
         }
         else if (evt.keyCode == 68) { //D
             glcanvas.movelr = 1;
+            //glcanvas.movelr = 20;
         }
         else if (evt.keyCode == 67) { //C
             glcanvas.moveud = -1;
+            //glcanvas.moveud = -20;
         }
         else if (evt.keyCode == 69) { //E
             glcanvas.moveud = 1;
+            //glcanvas.moveud = 20;
         }
         glcanvas.lastTime = (new Date()).getTime();
         requestAnimFrame(glcanvas.repaint);
