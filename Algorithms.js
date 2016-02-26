@@ -1,5 +1,7 @@
 //Purpose: A file that holds the code that students fill in
 
+var hasComputedBoundingBoxes = false;
+
 
 //Given a ray described by an initial point P0 and a direction V both in
 //world coordinates, check to see 
@@ -10,8 +12,6 @@
 //Be sure to compute the plane normal only after you have transformed the points,
 //and be sure to only compute intersections which are inside of the polygon
 //(you can assume that all polygons are convex and use the area method)
-
-//Note: Stereo sound has been completed for this assignment. All modifications for this to run are contained in SceneFile.js
 function rayIntersectPolygon(P0, V, vertices, mvMatrix) {
   
   	// If we have fewer than 3 points, we can't do this. Return null
@@ -139,6 +139,7 @@ function addImageSourcesFunctions(scene) {
     //NOTE: Calling this function with node = scene and an identity matrix for mvMatrix
     //will start the recursion at the top of the scene tree in world coordinates
     scene.rayIntersectFaces = function(P0, V, node, mvMatrix, excludeFace) {
+      	scene.computeBoundingBoxes();
         var tmin = Infinity;//The parameter along the ray of the nearest intersection
         var PMin = null;//The point of intersection corresponding to the nearest interesection
         var faceMin = null;//The face object corresponding to the nearest intersection
@@ -148,8 +149,6 @@ function addImageSourcesFunctions(scene) {
         if ('mesh' in node) { //Make sure it's not just a dummy transformation node
             var mesh = node.mesh;
             for (var f = 0; f < mesh.faces.length; f++) {
-            	//Add the reflection coefficient to the face if it wasn't there before
-            	mesh.faces[f].rcoeff = node.rcoeff;
                 if (mesh.faces[f] == excludeFace) {
                     continue;//Don't re-intersect with the face this point lies on
                 }
@@ -159,7 +158,6 @@ function addImageSourcesFunctions(scene) {
                     tmin = res.t;
                     PMin = res.P;
                     faceMin = mesh.faces[f];
-					faceMin.worldTransform = mvMatrix;
                 }
             }
         }
@@ -206,6 +204,64 @@ function addImageSourcesFunctions(scene) {
       	return vertices;
     }
     
+    scene.computeBoundingBoxes = function() {
+       if (!hasComputedBoundingBoxes) {
+            var identity = mat4.create();
+            scene.findBoundingBox(scene, identity);
+            hasComputedBoundingBoxes = true;
+        }
+  	}
+
+   scene.findBoundingBox = function(node) {
+        if (node === null) {
+            return null;
+        }
+     
+        var maxX = Number.MIN_VALUE;
+        var minX = Number.MAX_VALUE;
+        var maxY = Number.MIN_VALUE;
+        var minY = Number.MAX_VALUE;
+        var maxZ = Number.MIN_VALUE;
+        var minZ = Number.MAX_VALUE;
+     
+     	// compute max and min for the node itself
+        if ('mesh' in node) { //Make sure it's not just a dummy transformation node          
+            var mesh = node.mesh;
+            for (var v = 0; v < mesh.vertices.length; v++) {
+                var temp = mesh.vertices[v].pos;
+              	var vertexPos = vec3.create();
+              	vec3.transformMat4(vertexPos, temp, node.worldTransform);
+              
+              	if (vertexPos[0] < minX) minX = vertexPos[0];
+                if (vertexPos[0] > maxX) maxX = vertexPos[0];
+              	if (vertexPos[1] < minY) minY = vertexPos[1];
+              	if (vertexPos[1] > maxY) maxY = vertexPos[1];
+              	if (vertexPos[2] < minZ) minZ = vertexPos[2];
+              	if (vertexPos[2] > maxZ) maxZ = vertexPos[2];
+            }
+        }
+        
+     	// compute max and min for all of the node's children
+        if ('children' in node) {
+            //Recursively check the meshes of the children to compute the min and max
+            for (var i = 0; i < node.children.length; i++) {
+                //Recursively intersect with the child node
+                var box = scene.findBoundingBox(node.children[i]);
+              
+              	if (box.minX < minX) minX = box.minX;
+              	if (box.maxX > maxX) maxX = box.maxX;
+              	if (box.minY < minY) minY = box.minY;
+              	if (box.maxY > maxY) maxY = box.maxY;
+              	if (box.minZ < minZ) minZ = box.minZ;
+              	if (box.maxZ > maxZ) maxZ = box.maxZ;
+            }
+        }
+     	
+     	node.boundingBox = {minX:minX, maxX:maxX, minY:minY, maxY:maxY, minZ:minZ, maxZ:maxZ};
+     
+        return node.boundingBox;
+    }
+    
     //Purpose: Fill in the array scene.imsources[] with a bunch of source
     //objects.  It's up to you what you put in the source objects, but at
     //the very least each object needs a field "pos" describing its position
@@ -246,16 +302,17 @@ function addImageSourcesFunctions(scene) {
               	// pull a node off of the stack
               	while(stack.length>0){
                   	var node = stack.pop(); //get our node
+                  	console.log(node); // TODO delete... testing only
                   	//Throw its children into a pile
                   	if('children' in node){
                     	for(var k=0;k<node.children.length;k++){
                           node.children[k].worldTransform = mat4.create();
-							            //Multiply on the right by the next transformation of the child node
+							//Multiply on the right by the next transformation of the child node
                           mat4.mul(node.children[k].worldTransform, node.worldTransform, node.children[k].transform);
                           stack.push(node.children[k]);
                         }
                     }                  	
-                  	//Now do some serious polygonal processing
+                  	//Now do some serious polygonal processing shit
                   	if ('mesh' in node) {
                       	var mesh = node.mesh;
                         for (var i = 0; i < mesh.faces.length; i++) {
@@ -264,24 +321,17 @@ function addImageSourcesFunctions(scene) {
                                 continue;// don't re-reflect across the old genFace
                             }
                           	else {
-                              	var tempNormal = face.getNormal(); // Normal of the face
+                              	var normal = face.getNormal(); // Normal of the face
                               	var tempCentroid = face.getCentroid(); // Arbitrary point on the face
                               	var p = source.pos;                              	
                               
                               	// we need to make sure we're all in the world reference
                               
                               	var q = vec3.create();
-								var normal = vec3.create();
-								var normalTransform = mat3.create();
-								
-								mat3.normalFromMat4(normalTransform, node.worldTransform);
-								
+                              
                               	// transform by the worldTransform to get the world location of the centroid point
                               	vec3.transformMat4(q, tempCentroid, node.worldTransform);
-                              	vec3.transformMat3(normal, tempNormal, normalTransform);
-								
-								vec3.normalize(normal, normal);
-								
+
                               	//newSource = p - 2*(p-q)dotn * n;
                               	var newSource = vec3.create();
                                 var pMinusQ = vec3.create();
@@ -326,11 +376,19 @@ function addImageSourcesFunctions(scene) {
     //Don't forget the direct path from source to receiver!
     scene.extractPaths = function() {
         scene.paths = [];
-      	var path = [{pos:scene.receiver.pos,rcoeff:scene.receiver.rcoeff}];
+      	var path = [scene.receiver];
       	// Check all possible orders of paths
       	for (var i=0; i<=scene.maxOrder;i++){
       		scene.checkForSourcePath(scene.receiver.pos,null,i,path);
         }
+
+        //TODO: Finish this. Extract the rest of the paths by backtracing from
+        //the image sources you calculated.  Return an array of arrays in
+        //scene.paths.  Recursion is highly recommended
+        //Each path should start at the receiver and end at the source
+        //(or vice versa), so scene.receiver should be the first element 
+        //and scene.source should be the last element of every array in 
+        //scene.paths
     }
     
     // Recursive function for path checking.
@@ -366,23 +424,9 @@ function addImageSourcesFunctions(scene) {
 					vec3.subtract(oldCurrentDir, path[path.length-2].pos, point);
 					vec3.normalize(oldCurrentDir, oldCurrentDir);
 					
-					var normal = vec3.create();
-					var crossVector = vec3.create();
-					var tempNormal = face.getNormal();
-					var normalRotation = mat3.create();
-										
-					mat3.normalFromMat4(normalRotation, face.worldTransform);
-					vec3.transformMat3(normal, tempNormal, normalRotation);
-					
-					vec3.cross(crossVector, oldCurrentDir, normal);
-					
-					var dot1 = vec3.dot(dirVector, normal);
-					var dot2 = vec3.dot(oldCurrentDir, normal);
-					var dot3 = vec3.dot(crossVector, dirVector);
-					if (Math.abs(dot1-dot2) > THRESHOLD || Math.abs(dot3) > THRESHOLD){
-					
-					//if (Math.abs(dot1-dot2) > THRESHOLD){
-
+					var dot1 = vec3.dot(dirVector, face.getNormal());
+					var dot2 = vec3.dot(oldCurrentDir, face.getNormal());
+					if (path.length>=2 && Math.abs(dot1-dot2) > THRESHOLD){
 					  continue;
 					}
 				}
@@ -398,13 +442,12 @@ function addImageSourcesFunctions(scene) {
 				var hitSource = (intersect == null || getDistBtwnPoints(point, scene.source.pos) < getDistBtwnPoints(point, intersect.PMin)) && (source == scene.source);
 				if (hitSource) {
 					var newPath = path.slice(0);
-					newPath.push({pos:scene.source.pos,rcoeff:scene.source.rcoeff});
+					newPath.push({pos:scene.source.pos});
 					scene.checkForSourcePath(scene.source.pos, null, order-1, newPath);
 				}
               	else if (intersect != null && intersect.faceMin == source.genFace) {
 					var newPath = path.slice(0);
-
-					newPath.push({pos:intersect.PMin, rcoeff:((face==null)?1:face.rcoeff)});
+					newPath.push({pos:intersect.PMin});
 					scene.checkForSourcePath(intersect.PMin, intersect.faceMin, order-1, newPath);
 				}
             }
@@ -415,33 +458,14 @@ function addImageSourcesFunctions(scene) {
     //Inputs: Fs: Sampling rate (samples per second)
     scene.computeImpulseResponse = function(Fs) {
         var SVel = 340;//Sound travels at 340 meters/second
-        var diss = 0.001; // Dissipation of energy through space
-        var pathResults = [] // An array of {magnitude:endMagnitude,sample:SampleNumberOfCollision} for each path
-        var largestSampleNumber = 0;
-        // Go through all the paths and calculate their index and magnitude
-        for (var i=0; i<scene.paths.length; i++)
-        {
-        	var path = scene.paths[i];
-        	var distance = 0;
-        	var magnitude = 1;
-        	for (var j=0;j<path.length-1;j++){
-        		var bounceDist=Math.abs(getDistBtwnPoints(path[j].pos,path[j+1].pos))
-        		distance+=bounceDist;
-        		magnitude*=1/Math.pow(1+bounceDist,diss);// Magnitude loss through space 1/(1+r)^p
-        		magnitude*=path[j+1].rcoeff; // Reflection magnitude loss
-        	}
-        	//Calculate our sample number
-        	var sampleNumber = Math.round(distance/SVel*Fs) // meters/(meters/second)*(samples/second) = samples
-        	//Make sure we're traking our largest sample number
-        	if(sampleNumber>largestSampleNumber){
-        		largestSampleNumber = sampleNumber;
-        	}
-        	pathResults.push({magnitude:magnitude,sample:sampleNumber});
-        }
-        //Create our impulse array
-      	scene.impulseResp = new Float32Array(largestSampleNumber+1);
-      	for(var i=0;i<pathResults.length;i++){
-      		scene.impulseResp[pathResults[i].sample]+=pathResults[i].magnitude;
-      	}
+        //TODO: Finish this.  Be sure to scale each bounce by 1/(1+r^p), 
+        //where r is the length of the line segment of that bounce in meters
+        //and p is some integer less than 1 (make it smaller if you want the 
+        //paths to attenuate less and to be more echo-y as they propagate)
+        //Also be sure to scale by the reflection coefficient of each material
+        //bounce (you should have stored this in extractPaths() if you followed
+        //those directions).  Use some form of interpolation to spread an impulse
+        //which doesn't fall directly in a bin to nearby bins
+        //Save the result into the array scene.impulseResp[]
     }
 }
