@@ -200,7 +200,7 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
     glcanvas.scene.receiver.pixHeight = pixHeight;
     glcanvas.externalCam = new FPSCamera(pixWidth, pixHeight, 0.75);
     //glcanvas.externalCam.pos = vec3.fromValues(-94, 15, 30);
-    glcanvas.externalCam.pos = vec3.fromValues(0, 1.5, 0);
+    glcanvas.externalCam.pos = vec3.fromValues(0, 1.5, 0); //TRUE VERSION
     glcanvas.walkspeed = 2.5;//How many meters per second
     glcanvas.lastTime = (new Date()).getTime();
     glcanvas.movelr = 0;//Moving left/right
@@ -356,29 +356,24 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
     
     //Keyboard handlers for camera
     glcanvas.keyDown = function(evt) {
+    	var scaling = 1;
         if (evt.keyCode == 87) { //W
-            glcanvas.movefb = 1;
-            //glcanvas.movefb = 20;
+            glcanvas.movefb = 1*scaling;
         }
         else if (evt.keyCode == 83) { //S
-            glcanvas.movefb = -1;
-            //glcanvas.movefb = -20;
+            glcanvas.movefb = -1*scaling;
         }
         else if (evt.keyCode == 65) { //A
-            glcanvas.movelr = -1;
-            //glcanvas.movelr = -20;
+            glcanvas.movelr = -1*scaling;
         }
         else if (evt.keyCode == 68) { //D
-            glcanvas.movelr = 1;
-            //glcanvas.movelr = 20;
+            glcanvas.movelr = 1*scaling;
         }
         else if (evt.keyCode == 67) { //C
-            glcanvas.moveud = -1;
-            //glcanvas.moveud = -20;
+            glcanvas.moveud = -1*scaling;
         }
         else if (evt.keyCode == 69) { //E
-            glcanvas.moveud = 1;
-            //glcanvas.moveud = 20;
+            glcanvas.moveud = 1*scaling;
         }
         glcanvas.lastTime = (new Date()).getTime();
         requestAnimFrame(glcanvas.repaint);
@@ -431,16 +426,43 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
     }
     
     glcanvas.extractPaths = function() {
-        console.log("Extracting paths source to receiver");
+        glcanvas.extractPathsHelper(/* pruneByBoundingBox */ false);
+        
+        //var t1 = new Date().getTime();
+        //var rightPaths1 = glcanvas.extractPathsHelper(true);
+        //var t2 = new Date().getTime();
+        //var rightPaths2 = glcanvas.extractPathsHelper(false);
+        //var t3 = new Date().getTime();
+        /*glcanvas.extractPathsHelper(false);
+        var t4 = new Date().getTime();
+        glcanvas.extractPathsHelper(true);
+        var t5 = new Date().getTime();*/
+      	
+      	//var equal = (JSON.stringify(rightPaths1)==JSON.stringify(rightPaths2));
+      	
+      	//console.log("equal? " + (equal));
+      	//console.log("time taken NO boxes first trial:");
+      	//console.log(t3-t2);
+      	//console.log("time taken NO boxes second trial:");
+      	//console.log(t4-t3);
+      	//console.log("time taken YES boxes first trial:");
+      	//console.log(t2-t1);
+      	//console.log("time taken YES boxes second trial:");
+      	//console.log(t5-t4);
+
+    }
+    
+    glcanvas.extractPathsHelper = function(pruneByBoundingBox) {
+    	console.log("Extracting paths source to receiver");
         //Note: This is a hacky solution... I'm moving the receiver and recalculating then moving it back in order to not have to change code
         var actualPosition = glcanvas.scene.receiver.pos;
         //Do left ear
         glcanvas.scene.receiver.pos = glcanvas.scene.receiver.getLeftEarPos();
-        glcanvas.scene.extractPaths();
+        glcanvas.scene.extractPaths(pruneByBoundingBox);
         scene.leftPaths = scene.paths;
         //Do right ear
         glcanvas.scene.receiver.pos = glcanvas.scene.receiver.getRightEarPos();
-        glcanvas.scene.extractPaths();
+        glcanvas.scene.extractPaths(pruneByBoundingBox);
         scene.rightPaths = scene.paths;
         //Reset position
         glcanvas.scene.receiver.pos = actualPosition;
@@ -461,6 +483,7 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
             }
         }
         requestAnimFrame(glcanvas.repaint);
+        return scene.paths;
     }
 
     glcanvas.computeImpulseResponse = function() {

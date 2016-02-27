@@ -1,8 +1,5 @@
 //Purpose: A file that holds the code that students fill in
 
-var hasComputedBoundingBoxes = false;
-
-
 //Given a ray described by an initial point P0 and a direction V both in
 //world coordinates, check to see 
 //if it intersects the polygon described by "vertices," an array of vec3
@@ -13,8 +10,7 @@ var hasComputedBoundingBoxes = false;
 //and be sure to only compute intersections which are inside of the polygon
 //(you can assume that all polygons are convex and use the area method)
 function rayIntersectPolygon(P0, V, vertices, mvMatrix) {
-  
-  	// If we have fewer than 3 points, we can't do this. Return null
+    // If we have fewer than 3 points, we can't do this. Return null
   	if(vertices.length<3){
       return null;
     }
@@ -138,14 +134,19 @@ function addImageSourcesFunctions(scene) {
     
     //NOTE: Calling this function with node = scene and an identity matrix for mvMatrix
     //will start the recursion at the top of the scene tree in world coordinates
-    scene.rayIntersectFaces = function(P0, V, node, mvMatrix, excludeFace) {
-      	scene.computeBoundingBoxes();
+    scene.rayIntersectFaces = function(P0, V, node, mvMatrix, excludeFace, pruneByBoundingBox) {
+      	if (pruneByBoundingBox) scene.computeBoundingBoxes();
         var tmin = Infinity;//The parameter along the ray of the nearest intersection
         var PMin = null;//The point of intersection corresponding to the nearest interesection
         var faceMin = null;//The face object corresponding to the nearest intersection
         if (node === null) {
             return null;
         }
+      
+      	if (pruneByBoundingBox && !scene.rayIntersectsBoundingBox(P0, V, node, mat4.create())) {
+            return null;
+        }
+      
         if ('mesh' in node) { //Make sure it's not just a dummy transformation node
             var mesh = node.mesh;
             for (var f = 0; f < mesh.faces.length; f++) {
@@ -171,7 +172,7 @@ function addImageSourcesFunctions(scene) {
                 //node
                 mat4.mul(nextmvMatrix, mvMatrix, node.children[i].transform);
                 //Recursively intersect with the child node
-                var cres = scene.rayIntersectFaces(P0, V, node.children[i], nextmvMatrix, excludeFace);
+                var cres = scene.rayIntersectFaces(P0, V, node.children[i], nextmvMatrix, excludeFace, pruneByBoundingBox);
                 if (!(cres === null) && (cres.tmin < tmin)) {
                     tmin = cres.tmin;
                     PMin = cres.PMin;
@@ -204,11 +205,50 @@ function addImageSourcesFunctions(scene) {
       	return vertices;
     }
     
+    scene.rayIntersectsBoundingBox = function(P0, V, node, mvMatrix) {
+        // check if the ray intersects the bounding box
+        var box = node.boundingBox;
+      	var v1 = [box.minX, box.minY, box.minZ];
+      	var v2 = [box.minX, box.minY, box.maxZ];
+      	var v3 = [box.minX, box.maxY, box.minZ];
+      	var v4 = [box.minX, box.maxY, box.maxZ];
+      	var v5 = [box.maxX, box.minY, box.minZ];
+      	var v6 = [box.maxX, box.minY, box.maxZ];
+      	var v7 = [box.maxX, box.maxY, box.minZ];
+      	var v8 = [box.maxX, box.maxY, box.maxZ];
+      	
+      	// face 1: minX
+      	var vertices1 = [v1,v2,v4,v3];
+      	// face 2: maxX
+      	var vertices2 = [v5,v6,v8,v7];
+      	// face 3: minY
+      	var vertices3 = [v1,v5,v6,v2];
+      	// face 4: maxY
+      	var vertices4 = [v3,v7,v8,v4];
+      	// face 5: minZ
+      	var vertices5 = [v1,v3,v7,v5];
+      	// face 6: maxZ
+      	var vertices6 = [v2,v6,v8,v4];
+      	
+      	if (!rayIntersectPolygon(P0, V, vertices1, mvMatrix) &&
+	      	!rayIntersectPolygon(P0, V, vertices2, mvMatrix) && 
+   	   		!rayIntersectPolygon(P0, V, vertices3, mvMatrix) && 
+      		!rayIntersectPolygon(P0, V, vertices4, mvMatrix) && 
+      		!rayIntersectPolygon(P0, V, vertices5, mvMatrix) && 
+      		!rayIntersectPolygon(P0, V, vertices6, mvMatrix)
+           ) 
+        {
+          return false;
+        }
+      
+      	return true;
+      	//sorry Duvall
+    }
+    
     scene.computeBoundingBoxes = function() {
-       if (!hasComputedBoundingBoxes) {
+       if (!scene.boundingBox) {
             var identity = mat4.create();
             scene.findBoundingBox(scene, identity);
-            hasComputedBoundingBoxes = true;
         }
   	}
 
@@ -262,6 +302,18 @@ function addImageSourcesFunctions(scene) {
         return node.boundingBox;
     }
     
+    scene.computeWorldTransforms = function(node) {
+    	if (node == null) return;
+    	if('children' in node){
+			for(var k=0;k<node.children.length;k++){
+				node.children[k].worldTransform = mat4.create();
+				//Multiply on the right by the next transformation of the child node
+                mat4.mul(node.children[k].worldTransform, node.worldTransform, node.children[k].transform);
+                scene.computeWorldTransforms(node.children[k]);
+            }
+        }  
+    }
+    
     //Purpose: Fill in the array scene.imsources[] with a bunch of source
     //objects.  It's up to you what you put in the source objects, but at
     //the very least each object needs a field "pos" describing its position
@@ -284,8 +336,12 @@ function addImageSourcesFunctions(scene) {
         //or you'll get its parent image.  This information can also be used later
         //when tracing back paths
       	scene.worldTransform = mat4.create(); // create Identity matrix for initial scene transform
+      	
+      	scene.computeWorldTransforms(scene);
+      	
         scene.imsources = [scene.source];
-      	// For all orders
+      	// For all orders               	
+      	
       	for (var currentOrder = 1; currentOrder <= order; currentOrder++) {
           	// Go through all the sources
           	var sourceIndex = 0;
@@ -302,13 +358,9 @@ function addImageSourcesFunctions(scene) {
               	// pull a node off of the stack
               	while(stack.length>0){
                   	var node = stack.pop(); //get our node
-                  	console.log(node); // TODO delete... testing only
                   	//Throw its children into a pile
                   	if('children' in node){
                     	for(var k=0;k<node.children.length;k++){
-                          node.children[k].worldTransform = mat4.create();
-							//Multiply on the right by the next transformation of the child node
-                          mat4.mul(node.children[k].worldTransform, node.worldTransform, node.children[k].transform);
                           stack.push(node.children[k]);
                         }
                     }                  	
@@ -374,12 +426,12 @@ function addImageSourcesFunctions(scene) {
     //as an element "rcoeff" which stores the reflection coefficient at that
     //part of the path, which will be used to compute decays in "computeInpulseResponse()"
     //Don't forget the direct path from source to receiver!
-    scene.extractPaths = function() {
+    scene.extractPaths = function(pruneByBoundingBox) {
         scene.paths = [];
       	var path = [scene.receiver];
       	// Check all possible orders of paths
       	for (var i=0; i<=scene.maxOrder;i++){
-      		scene.checkForSourcePath(scene.receiver.pos,null,i,path);
+      		scene.checkForSourcePath(scene.receiver.pos,null,i,path, pruneByBoundingBox);
         }
 
         //TODO: Finish this. Extract the rest of the paths by backtracing from
@@ -395,7 +447,7 @@ function addImageSourcesFunctions(scene) {
     // Point is the point to start checking from, face is the current source's face to ignore when doing the intersection, order is the order of source we are examining
     // and path is the current path we are traversing
     // Automatically adds the path to the scene.paths variable.
-    scene.checkForSourcePath = function(point, face, order, path){
+    scene.checkForSourcePath = function(point, face, order, path, pruneByBoundingBox){
       	// If we've found our source, this is also great. Let's return the path
         if(point == scene.source.pos){
           scene.paths.push(path);
@@ -435,7 +487,7 @@ function addImageSourcesFunctions(scene) {
 				
 				//Returns: null if no intersection,
 				//{tmin:minimum t along ray, PMin(vec3): corresponding point, faceMin:Pointer to mesh face hit first}
-          		var intersect = scene.rayIntersectFaces(point, dirVector, scene, mat4.create(), face); 
+          		var intersect = scene.rayIntersectFaces(point, dirVector, scene, mat4.create(), face, pruneByBoundingBox); 
               
           		// If the closest intersection is the source's parent face (or if the node is the source), we're good. Duplicate the path array, add the point of intersection to the path,
     			// subtract 1 from order, and call the recursive method on the point of intersection with the source's parent face.
@@ -443,12 +495,12 @@ function addImageSourcesFunctions(scene) {
 				if (hitSource) {
 					var newPath = path.slice(0);
 					newPath.push({pos:scene.source.pos});
-					scene.checkForSourcePath(scene.source.pos, null, order-1, newPath);
+					scene.checkForSourcePath(scene.source.pos, null, order-1, newPath, pruneByBoundingBox);
 				}
               	else if (intersect != null && intersect.faceMin == source.genFace) {
 					var newPath = path.slice(0);
 					newPath.push({pos:intersect.PMin});
-					scene.checkForSourcePath(intersect.PMin, intersect.faceMin, order-1, newPath);
+					scene.checkForSourcePath(intersect.PMin, intersect.faceMin, order-1, newPath, pruneByBoundingBox);
 				}
             }
         }
