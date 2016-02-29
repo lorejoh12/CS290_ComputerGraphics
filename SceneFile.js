@@ -234,7 +234,7 @@ function SceneCanvas(glcanvas, shadersRelPath, pixWidth, pixHeight, scene) {
         glcanvas.gl.clear(glcanvas.gl.COLOR_BUFFER_BIT | glcanvas.gl.DEPTH_BUFFER_BIT);
         
         var pMatrix = mat4.create();
-        mat4.perspective(pMatrix, 45, glcanvas.gl.viewportWidth / glcanvas.gl.viewportHeight, 0.01, 100.0);
+        mat4.perspective(pMatrix, 45, glcanvas.gl.viewportWidth / glcanvas.gl.viewportHeight, 0.01, 500.0);
         //First get the global modelview matrix based on the camera
         var mvMatrix = glcanvas.camera.getMVMatrix();
         //Then drawn the scene
