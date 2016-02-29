@@ -51,6 +51,7 @@ function rayIntersectPolygon(P0, V, vertices, mvMatrix) {
       return null;
     }
 
+
   	//Get our point of intersection with the plane
 	var intersectionPoint = vec3.create();
   	vec3.scale(intersectionPoint,V,t);
@@ -150,6 +151,8 @@ function addImageSourcesFunctions(scene) {
         if ('mesh' in node) { //Make sure it's not just a dummy transformation node
             var mesh = node.mesh;
             for (var f = 0; f < mesh.faces.length; f++) {
+                //Add the reflection coefficient to the face if it wasn't there before
+                mesh.faces[f].rcoeff = node.rcoeff;
                 if (mesh.faces[f] == excludeFace) {
                     continue;//Don't re-intersect with the face this point lies on
                 }
@@ -159,6 +162,7 @@ function addImageSourcesFunctions(scene) {
                     tmin = res.t;
                     PMin = res.P;
                     faceMin = mesh.faces[f];
+                    faceMin.worldTransform = mvMatrix;
                 }
             }
         }
@@ -428,7 +432,7 @@ function addImageSourcesFunctions(scene) {
     //Don't forget the direct path from source to receiver!
     scene.extractPaths = function(pruneByBoundingBox) {
         scene.paths = [];
-      	var path = [scene.receiver];
+      	var path = [{pos:scene.receiver.pos,rcoeff:scene.receiver.rcoeff}];
       	// Check all possible orders of paths
       	for (var i=0; i<=scene.maxOrder;i++){
       		scene.checkForSourcePath(scene.receiver.pos,null,i,path, pruneByBoundingBox);
@@ -483,41 +487,60 @@ function addImageSourcesFunctions(scene) {
 					}
 				}
           
-          		// Pass into scene.rayIntersectFaces to get the points of intersection. Be sure to ignore the face the point is currently on
+        // Pass into scene.rayIntersectFaces to get the points of intersection. Be sure to ignore the face the point is currently on
 				
 				//Returns: null if no intersection,
 				//{tmin:minimum t along ray, PMin(vec3): corresponding point, faceMin:Pointer to mesh face hit first}
-          		var intersect = scene.rayIntersectFaces(point, dirVector, scene, mat4.create(), face, pruneByBoundingBox); 
-              
-          		// If the closest intersection is the source's parent face (or if the node is the source), we're good. Duplicate the path array, add the point of intersection to the path,
-    			// subtract 1 from order, and call the recursive method on the point of intersection with the source's parent face.
+        var intersect = scene.rayIntersectFaces(point, dirVector, scene, mat4.create(), face, pruneByBoundingBox); 
+        // If the closest intersection is the source's parent face (or if the node is the source), we're good. Duplicate the path array, add the point of intersection to the path,
+    		// subtract 1 from order, and call the recursive method on the point of intersection with the source's parent face.
 				var hitSource = (intersect == null || getDistBtwnPoints(point, scene.source.pos) < getDistBtwnPoints(point, intersect.PMin)) && (source == scene.source);
 				if (hitSource) {
 					var newPath = path.slice(0);
-					newPath.push({pos:scene.source.pos});
+					newPath.push({pos:scene.source.pos, rcoeff:scene.source.rcoeff});
 					scene.checkForSourcePath(scene.source.pos, null, order-1, newPath, pruneByBoundingBox);
 				}
-              	else if (intersect != null && intersect.faceMin == source.genFace) {
+        //Check to see if we've gone too far... John and Natalie, check this...
+        else if (intersect != null && intersect.faceMin == source.genFace && getDistBtwnPoints(point, source.pos) >= getDistBtwnPoints(point, intersect.PMin)) {
 					var newPath = path.slice(0);
-					newPath.push({pos:intersect.PMin});
+					newPath.push({pos:intersect.PMin, rcoeff:((face==null)?1:face.rcoeff)});
 					scene.checkForSourcePath(intersect.PMin, intersect.faceMin, order-1, newPath, pruneByBoundingBox);
-				}
-            }
-        }
+			 }
+      }
     }
+  }
     
     
     //Inputs: Fs: Sampling rate (samples per second)
     scene.computeImpulseResponse = function(Fs) {
         var SVel = 340;//Sound travels at 340 meters/second
-        //TODO: Finish this.  Be sure to scale each bounce by 1/(1+r^p), 
-        //where r is the length of the line segment of that bounce in meters
-        //and p is some integer less than 1 (make it smaller if you want the 
-        //paths to attenuate less and to be more echo-y as they propagate)
-        //Also be sure to scale by the reflection coefficient of each material
-        //bounce (you should have stored this in extractPaths() if you followed
-        //those directions).  Use some form of interpolation to spread an impulse
-        //which doesn't fall directly in a bin to nearby bins
-        //Save the result into the array scene.impulseResp[]
+        var diss = 0.001; // Dissipation of energy through space
+        var pathResults = [] // An array of {magnitude:endMagnitude,sample:SampleNumberOfCollision} for each path
+        var largestSampleNumber = 0;
+        // Go through all the paths and calculate their index and magnitude
+        for (var i=0; i<scene.paths.length; i++)
+        {
+         var path = scene.paths[i];
+         var distance = 0;
+         var magnitude = 1;
+         for (var j=0;j<path.length-1;j++){
+           var bounceDist=Math.abs(getDistBtwnPoints(path[j].pos,path[j+1].pos))
+           distance+=bounceDist;
+           magnitude*=1/Math.pow(1+bounceDist,diss);// Magnitude loss through space 1/(1+r)^p
+           magnitude*=path[j+1].rcoeff; // Reflection magnitude loss
+         }
+         //Calculate our sample number
+         var sampleNumber = Math.round(distance/SVel*Fs) // meters/(meters/second)*(samples/second) = samples
+         //Make sure we're traking our largest sample number
+         if(sampleNumber>largestSampleNumber){
+           largestSampleNumber = sampleNumber;
+         }
+         pathResults.push({magnitude:magnitude,sample:sampleNumber});
+        }
+        //Create our impulse array
+       scene.impulseResp = new Float32Array(largestSampleNumber+1);
+       for(var i=0;i<pathResults.length;i++){
+         scene.impulseResp[pathResults[i].sample]+=pathResults[i].magnitude;
+       }
     }
 }

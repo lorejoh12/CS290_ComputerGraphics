@@ -171,7 +171,6 @@
     }
     function callComputeImpulseResponse() {
         impbuffer = glcanvas.computeImpulseResponse();
-        console.log(impbuffer);
     }
     ///////////////////////////////////////////
     //             Audio stuff               //
@@ -210,7 +209,7 @@
         if (source === null) {
             return;
         }
-        playing = false;
+        var playing = false;
         source.stop();
     }
 
