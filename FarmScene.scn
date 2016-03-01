@@ -1,7 +1,7 @@
 {
     "name":"testscene",
-    "receiver":[-12, 10, 25],
-    "source":[-19.3, 12, 25], 
+    "receiver":[-12, 2, 0],
+    "source":[-19.3, 4, 0], 
     "children":[
         { 
             "mesh":"meshes/box.off",
