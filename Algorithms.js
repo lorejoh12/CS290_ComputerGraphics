@@ -503,7 +503,7 @@ function addImageSourcesFunctions(scene) {
         //Check to see if we've gone too far... John and Natalie, check this...
         else if (intersect != null && intersect.faceMin == source.genFace && getDistBtwnPoints(point, source.pos) >= getDistBtwnPoints(point, intersect.PMin)) {
 					var newPath = path.slice(0);
-					newPath.push({pos:intersect.PMin, rcoeff:((face==null)?1:face.rcoeff)});
+					newPath.push({pos:intersect.PMin, rcoeff:intersect.faceMin.rcoeff});
 					scene.checkForSourcePath(intersect.PMin, intersect.faceMin, order-1, newPath, pruneByBoundingBox);
 			 }
       }
