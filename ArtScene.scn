@@ -1,0 +1,505 @@
+{
+    "name":"testscene",
+    "receiver":[0, -15, 10],
+    "source":[20, -15, 10], 
+    "children":[
+        { 
+            "mesh":"meshes/square.off",
+            "color":[1, 0, 0],
+            "rcoeff":0.5,
+            "transform":[10, 0, 0, 0,
+                         0, 10, 0, 0,
+                         0, 0, 10, 0,
+                         0, 0, 0, 1],
+            "children":[
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               }
+            ]
+        },
+        { 
+            "mesh":"meshes/square.off",
+            "color":[1, 0.5, 0],
+            "rcoeff":0.5,
+            "transform":[10, 0, 0, 0,
+                         0, 10, 0, -30,
+                         0, 0, 10, 0,
+                         0, 0, 0, 1],
+            "children":[
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               }
+            ]
+        },
+        { 
+            "mesh":"meshes/square.off",
+            "color":[1, 1, 1],
+            "rcoeff":0.5,
+            "transform":[0, -10, 0, -5,
+                         10, 0, 0, -5,
+                         0, 0, 10, 0,
+                         0, 0, 0, 1],
+            "children":[
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               }
+            ]
+        },
+        { 
+            "mesh":"meshes/square.off",
+            "color":[1, 1, 0],
+            "rcoeff":0.5,
+            "transform":[0, -10, 0, 25,
+                         10, 0, 0, -5,
+                         0, 0, 10, 0,
+                         0, 0, 0, 1],
+            "children":[
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[1, 1, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, -2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               }
+            ]
+        },
+        { 
+            "mesh":"meshes/square.off",
+            "color":[0, 0, 1],
+            "rcoeff":0.5,
+            "transform":[10, 0, 0, 0,
+                         0, 0, -10, -5,
+                         0, 10, 0, -5,
+                         0, 0, 0, 1],
+            "children":[
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0, 1],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               }
+            ]
+		},
+        { 
+            "mesh":"meshes/square.off",
+            "color":[0, 0.5, 0],
+            "rcoeff":0.5,
+            "transform":[10, 0, 0, 0,
+                         0, 0, -10, -5,
+                         0, 10, 0, 25,
+                         0, 0, 0, 1],
+            "children":[
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 1,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 1,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               },
+               {
+                "mesh":"meshes/square.off",
+                "color":[0, 0.5, 0],
+                "rcoeff":0.5,
+                "transform":[1, 0, 0, 2,
+                             0, 1, 0, 0,
+                             0, 0, 1, 2,
+                             0, 0, 0, 1]
+               }
+            ]
+		}
+    ]
+}
