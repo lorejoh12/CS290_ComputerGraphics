@@ -1,0 +1,61 @@
+{
+    "name":"testscene",
+    "receiver":[-12, 2, 0],
+    "source":[-19.3, 4, 0], 
+    "children":[
+        { 
+            "mesh":"meshes/box.off",
+            "color":[1, 1, 0.0],
+            "rcoeff":0.5,
+            "transform":[14, 0, 0, -80,
+                         0, 6, 0, 3,
+                         0, 0, 10, 0,
+                         0, 0, 0, 1]
+        },
+        { 
+            "mesh":"meshes/triangularPrism.off",
+            "color":[1, 0, 0],
+            "rcoeff":0.5,
+            "transform":[14, 0, 0, -80,
+                         0, 6, 0, 9,
+                         0, 0, 10, 0,
+                         0, 0, 0, 1]
+        },
+        { 
+            "mesh":"meshes/box.off",
+            "color":[0.7, 0, 0],
+            "rcoeff":0.5,
+            "transform":[14, 0, 0, 80,
+                         0, 6, 0, 3,
+                         0, 0, 10, 40,
+                         0, 0, 0, 1]
+        },
+        { 
+            "mesh":"meshes/triangularPrism.off",
+            "color":[0, 0, 0.7],
+            "rcoeff":0.5,
+            "transform":[14, 0, 0, 80,
+                         0, 6, 0, 9,
+                         0, 0, 10, 40,
+                         0, 0, 0, 1]
+        },
+        {
+            "mesh":"meshes/square.off",
+            "color":[0, 0.6, 0],
+            "rcoeff":0.5,
+            "transform":[274, 0, 0, 0,
+                         0, 1, 0, 0,
+                         0, 0, 150, 20,
+                         0, 0, 0, 1]
+        },
+        {
+            "mesh":"meshes/square.off",
+            "color":[0.5, 0.5, 0.5],
+            "rcoeff":0.5,
+            "transform":[274, 0, 0, 0,
+                         0, 1, 0, 0.2,
+                         0, 0, 20, 20,
+                         0, 0, 0, 1]
+        }
+    ]
+}
