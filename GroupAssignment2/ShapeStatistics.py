@@ -248,9 +248,9 @@ def compareHistsCosine(AllHists):
 #Returns: D (An N x N matrix, where the ij entry is the chi squared
 #distance between the histogram for point cloud i and point cloud j)
 def compareHistsChiSquared(AllHists):
-    sub = hists[:, None, :].T - hists.T # used this resource: http://stackoverflow.com/questions/32473635/how-do-i-calculate-all-pairs-of-vector-differences-in-numpy
+    sub = AllHists[:, None, :].T - AllHists.T # used this resource: http://stackoverflow.com/questions/32473635/how-do-i-calculate-all-pairs-of-vector-differences-in-numpy
     sub2 = np.square(sub)
-    add = hists[:, None, :].T + hists.T
+    add = AllHists[:, None, :].T + AllHists.T
     div = np.divide(1.0*sub2,add)
     D = 0.5*np.sum(div,2)
     return D
@@ -262,9 +262,10 @@ def compareHistsChiSquared(AllHists):
 #Returns: D (An N x N matrix, where the ij entry is the earth mover's
 #distance between the histogram for point cloud i and point cloud j)
 def compareHistsEMD1D(AllHists):
-    N = AllHists.shape[1]
-    D = np.zeros((N, N))
-    #TODO: Finish this, fill in D
+    histsC = np.cumsum(AllHists,axis=0)
+    sub = histsC[:, None, :].T - histsC.T
+    absSub = np.abs(sub)
+    D = np.sum(absSub,2)
     return D
 
 
