@@ -86,9 +86,22 @@ def getShapeHistogram(Ps, Ns, NShells, RMax):
 def getShapeShellHistogram(Ps, Ns, NShells, RMax, SPoints):
     NSectors = SPoints.shape[1] #A number of sectors equal to the number of
     #points sampled on the sphere
+    # First, dot product all points in Ps against all points in SPoints.
+    # We're doing a matrix multiplication of Ps^T with SPoints. This will give an NxM matrix
+    # Where the rows are the dot product magnitudes of each point of Ps with all the points in SPoints
+    dots = np.dot(Ps.T, SPoints)
+    # Then find the index of the point in SPoints that yields the largest dot product for each Ps point
+    maximums = np.argmax(dots,axis=1).T
     #Create a 2D histogram that is NShells x NSectors
-    hist = np.zeros((NShells, NSectors))    
-    ##TODO: Finish this; fill in hist, then sort sectors in descending order   
+    NSectors = SPoints.shape[1]
+    hist = np.zeros((NShells, 0)) 
+    # Go through each sector and create a histogram
+    for i in range(NSectors):
+        sectorElems = Ps[:,maximums==i] # Select every element in the given sector
+        sectorHistogram=np.array(np.histogram(np.linalg.norm(sectorElems,axis=0),NShells,(0,RMax))[0])[np.newaxis].T # Create a histogram for the sector in Column form
+        hist=np.hstack((hist,sectorHistogram)) # Add the column to the histogram
+    # Sort shells in descending order in rows
+    hist=-np.sort(-hist,axis=1) 
     return hist.flatten() #Flatten the 2D histogram to a 1D array
 
 #Purpose: To create shape histogram with concentric spherical shells and to 
