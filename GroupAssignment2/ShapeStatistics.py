@@ -35,10 +35,17 @@ def exportPointCloud(Ps, Ns, filename):
 #then scale all of the points so that the RMS distance to the origin is 1
 def samplePointCloud(mesh, N):
     (Ps, Ns) = mesh.randomlySamplePoints(N)
-    ##TODO: Center the point cloud on its centroid and normalize
-    #by its root mean square distance to the origin.  Note that this
-    #does not change the normals at all, only the points, since it's a
-    #uniform scale
+    # Find centroid. A column matrix of x,y,z averages
+    centroid = Ps.mean(1)[:,None] 
+    # Center the points on the centroid with broadcasting
+    Ps -= centroid
+    # Calculate the scale factor
+    distances = np.linalg.norm(Ps,axis=0)# Calculate the euclidean distance of all points
+    summedSquared = np.sum(np.square(distances)) # Square all distances then sum them
+    scaleFactor = math.sqrt(np.divide(N,summedSquared)) # Calculate the scaling factor from this
+    # Scale the points
+    Ps = np.multiply(Ps,scaleFactor)
+
     return (Ps, Ns)
 
 #Purpose: To sample the unit sphere as evenly as possible.  The higher
@@ -67,11 +74,14 @@ def doPCA(X):
 #NShells (number of shells), RMax (maximum radius)
 #Returns: hist (histogram of length NShells)
 def getShapeHistogram(Ps, Ns, NShells, RMax):
-    hist = np.zeros(NShells)
-    
-    ##TODO: Finish this; fill in hist
-    
-    return hist
+	# TODO - remove for loop?
+	hist = np.zeros(NShells)
+	binSize = RMax * 1.0 / NShells
+	for i in range(0,Ps.shape[1]):
+		pDist = np.linalg.norm(Ps[:,i])
+		bin = pDist / binSize
+		hist[bin] += 1;
+	return hist
     
 #Purpose: To create shape histogram with concentric spherical shells and
 #sectors within each shell, sorted in decreasing order of number of points
@@ -299,6 +309,7 @@ if __name__ == '__main__':
             PointClouds.append(Ps)
             Normals.append(Ps)
     
+
     #TODO: Finish this, run experiments.  Also in the above code, you might
     #just want to load one point cloud and test your histograms on that first
     #so you don't have to wait for all point clouds to load when making
