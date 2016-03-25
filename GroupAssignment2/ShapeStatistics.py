@@ -108,12 +108,26 @@ def getShapeShellHistogram(Ps, Ns, NShells, RMax, SPoints):
 #compute the PCA eigenvalues in each shell
 #Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals) (not needed here
 #but passed along for consistency), NShells (number of shells), 
-#RMax (maximum radius), sphereRes: An integer specifying points on thes phere
+#RMax (maximum radius), sphereRes: An integer specifying points on the sphere
 #to be used to cluster shells
 def getShapeHistogramPCA(Ps, Ns, NShells, RMax):
+    # Create our linear distance spacing for the histogram
+    shellSpacing = np.linspace(0,RMax,num=NShells+1)
+    # Create a distance array for all the points
+    pointDistances = np.linalg.norm(Ps,axis=0)
+    numPoints = Ps.shape[1]
     #Create a 2D histogram, with 3 eigenvalues for each shell
-    hist = np.zeros((NShells, 3))
-    ##TODO: Finish this; fill in hist
+    hist = np.zeros((0, 3))
+    # Compute the PCA values for the matrices of points by using pointDistances as a binary selector for points
+    for i in range(1,shellSpacing.shape[0]):
+        if(i<shellSpacing.shape[0]-1): # If we're not in the outer shell
+            shellPoints = Ps[:,np.logical_and(pointDistances>shellSpacing[i-1],pointDistances<shellSpacing[i])]
+        else: # If we're in the outer shell, choose all points in that shell and greater. This was a design choice for our system
+            shellPoints = Ps[:,pointDistances>shellSpacing[i]]
+        # Now, get PCA on points
+        D = shellPoints.dot(shellPoints.T)
+        eigs = np.sort(np.real(np.linalg.eigvals(D)))
+        hist = np.vstack((hist,[eigs])) # Put the PCA eigvenvalues in the histogram
     return hist.flatten() #Flatten the 2D histogram to a 1D array
 
 #Purpose: To create shape histogram of the pairwise Euclidean distances between
