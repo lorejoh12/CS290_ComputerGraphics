@@ -288,25 +288,6 @@ def getPrecisionRecall(D, NPerClass = 10):
 ##                     MAIN TESTS                      ##
 #########################################################
 
-def teehee():
-    NRandSamples = 10000 #You can tweak this number
-    np.random.seed(100) #For repeatable results randomly sampling
-    #Load in and sample all meshes
-    PointClouds = []
-    Normals = []
-    for i in range(len(POINTCLOUD_CLASSES)):
-        print "LOADING CLASS %i of %i..."%(i, len(POINTCLOUD_CLASSES))
-        PCClass = []
-        for j in range(NUM_PER_CLASS):
-            m = PolyMesh()
-            filename = "models_off/%s%i.off"%(POINTCLOUD_CLASSES[i], j)
-            print "Loading ", filename
-            m.loadOffFileExternal(filename)
-            (Ps, Ns) = samplePointCloud(m, NRandSamples)
-            PointClouds.append(Ps)
-            Normals.append(Ps)
-    return [PointClouds,Normals]
-
 
 if __name__ == '__main__':  
     NRandSamples = 10000 #You can tweak this number
