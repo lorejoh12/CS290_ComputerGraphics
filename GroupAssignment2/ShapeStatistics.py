@@ -109,8 +109,8 @@ def getShapeHistogramPCA(Ps, Ns, NShells, RMax):
 #but passed along for consistency), DMax (Maximum distance to consider), 
 #NBins (number of histogram bins), NSamples (number of pairs of points sample
 #to compute distances)
-#def getD2Histogram(Ps, Ns, DMax, NBins, NSamples):
-def getD2Histogram(NBins, NSamples):
+def getD2Histogram(Ps, Ns, DMax, NBins, NSamples):
+#def getD2Histogram(NBins, NSamples):
     numPoints = Ps.shape[1]
     r1 = np.random.random_integers(0, numPoints, NSamples)
     r2 = np.random.random_integers(0, numPoints, NSamples)
@@ -119,7 +119,7 @@ def getD2Histogram(NBins, NSamples):
         d = np.linalg.norm(Ps[:, r1[i]] - Ps[:, r2[i]])
         distances.append(d)
         
-    hist = np.histogram(distances, NBins)
+    hist = np.histogram(distances, NBins)[0]
     return hist
 
 #Purpose: To create shape histogram of the angles between randomly sampled
@@ -127,9 +127,25 @@ def getD2Histogram(NBins, NSamples):
 #Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals) (not needed here
 #but passed along for consistency), NBins (number of histogram bins), 
 #NSamples (number of triples of points sample to compute angles)
-def getA3Histogram(Ps, Ns, NBins, NSamples):
-    hist = np.zeros(NBins)
-    ##TODO: Finish this; fill in hist
+#def getA3Histogram(Ps, Ns, NBins, NSamples):
+def getA3Histogram(NBins, NSamples):
+    m = PolyMesh()
+    m.loadFile("models_off/biplane0.off") #Load a mesh
+    (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
+    
+    numPoints = Ps.shape[1]
+    r1 = np.random.random_integers(0, numPoints, NSamples)
+    r2 = np.random.random_integers(0, numPoints, NSamples)
+    r3 = np.random.random_integers(0, numPoints, NSamples)
+
+    angles = []
+    for i in range(NSamples):
+        ba = Ps[:, r1[i]] - Ps[:, r2[i]]
+        bc = Ps[:, r3[i]] - Ps[:, r2[i]]
+        angle = np.arccos(ba.dot(bc) / (np.linalg.norm(ba) * np.linalg.norm(bc)))
+        angles.append(angle)
+        
+    hist = np.histogram(angles, NBins)[0]
     return hist
 
 #Purpose: To create the Extended Gaussian Image by binning normals to
