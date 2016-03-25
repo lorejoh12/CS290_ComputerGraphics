@@ -234,9 +234,61 @@ def getEGIHistogram():
 #the plane, Extent: The extent of each axis, Dim: The number of pixels along
 #each minor axis
 def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
-    #Create an image
+#def getSpinImage(NAngles, Extent, Dim):
+    m = PolyMesh()
+    m.loadFile("models_off/biplane0.off") #Load a mesh
+    (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
+    
+    A = (Ps).dot(Ps.T)
+    w, v = np.linalg.eig(A)
+    
+    maxEIndex = np.argmax(w)
+    maxEVector = v[maxEIndex]
+    
+    idx = w.argsort()[::1]   
+    w = w[idx]
+    v = v[:,idx]
+    
+    print w
+    print v
+        
+    # need to align the v axis to the coordinate axis
+    # R dot A = B
+    # R = B dot A^-1 = B dot A.T (because A and B are orthonormal)
+    B = np.array([[1,0,0],[0,1,0],[0,0,1]]) # aligns largest eigenvector to z axis
+    R = B.dot(v.T)
+    
+    RotatedPs = R.dot(Ps)
+    
+    A = (RotatedPs).dot(RotatedPs.T)
+    w, v = np.linalg.eig(A)
+    
+    maxEIndex = np.argmax(w)
+    maxEVector = v[maxEIndex]
+    
+    idx = w.argsort()[::1]   
+    w = w[idx]
+    v = v[:,idx]
+    
+    print w
+    print v
+    
+    theta = 2*3.14159654/NAngles
+    c = np.cos(theta)
+    s = np.sin(theta)
+    Rz = np.array([[c,-s,0],[s,c,0],[0,0,1]])
+    
     hist = np.zeros((Dim, Dim))
-    #TODO: Finish this
+    for i in range(NAngles):
+        c = np.cos(theta*i)
+        s = np.sin(theta*i)
+        Rz = np.array([[c,-s,0],[s,c,0],[0,0,1]])
+        r = Rz.dot(RotatedPs)
+        h = np.histogram2d(r[0,:], r[1,:], Dim, [[-Extent, Extent], [-Extent, Extent]])[0]
+        hist = hist + h
+        
+    #plt.imshow(hist)
+    #plt.show()
     return hist.flatten()
 
 
