@@ -105,9 +105,17 @@ def getShapeHistogramPCA(Ps, Ns, NShells, RMax):
 #but passed along for consistency), DMax (Maximum distance to consider), 
 #NBins (number of histogram bins), NSamples (number of pairs of points sample
 #to compute distances)
-def getD2Histogram(Ps, Ns, DMax, NBins, NSamples):
-    hist = np.zeros(NBins)
-    ##TODO: Finish this; fill in hist
+#def getD2Histogram(Ps, Ns, DMax, NBins, NSamples):
+def getD2Histogram(NBins, NSamples):
+    numPoints = Ps.shape[1]
+    r1 = np.random.random_integers(0, numPoints, NSamples)
+    r2 = np.random.random_integers(0, numPoints, NSamples)
+    distances = []
+    for i in range(NSamples):
+        d = np.linalg.norm(Ps[:, r1[i]] - Ps[:, r2[i]])
+        distances.append(d)
+        
+    hist = np.histogram(distances, NBins)
     return hist
 
 #Purpose: To create shape histogram of the angles between randomly sampled
