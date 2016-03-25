@@ -209,6 +209,15 @@ def makeAllHistograms(PointClouds, Normals, histFunction, *args):
 ##              HISTOGRAM COMPARISONS                  ##
 #########################################################
 
+#Normalizes each histogram so that sum(h[k]) = 1
+#AllHists: (K x N matrix of histograms, where K is the length
+#of each histogram and N is the number of point clouds)
+#Returns: hists (a K x N matrix of the normalized histograms)
+def normalizeHists(AllHists):
+	sums = np.sum(AllHists,axis=0)
+	hists = 1.0 * AllHists / sums
+	return hists
+
 #Purpose: To compute the euclidean distance between a set
 #of histograms
 #Inputs: AllHists (K x N matrix of histograms, where K is the length
@@ -216,9 +225,10 @@ def makeAllHistograms(PointClouds, Normals, histFunction, *args):
 #Returns: D (An N x N matrix, where the ij entry is the Euclidean
 #distance between the histogram for point cloud i and point cloud j)
 def compareHistsEuclidean(AllHists):
-    aa = np.sum(np.multiply(AllHists,AllHists),0);
-    bb = np.sum(np.multiply(AllHists,AllHists),0);
-    ab = np.dot(AllHists.T,AllHists);
+    hists = normalizeHists(AllHists);
+    aa = np.sum(np.multiply(hists,hists),0);
+    bb = np.sum(np.multiply(hists,hists),0);
+    ab = np.dot(hists.T,hists);
     
     D2 = (aa - (2*ab).T).T + bb;
     D = np.sqrt(D2)
@@ -231,10 +241,11 @@ def compareHistsEuclidean(AllHists):
 #Returns: D (An N x N matrix, where the ij entry is the cosine
 #distance between the histogram for point cloud i and point cloud j)
 def compareHistsCosine(AllHists):
-    N = AllHists.shape[1]
-    numerator = np.dot(AllHists.T,AllHists);    
+    hists = normalizeHists(AllHists);
+    N = hists.shape[1]
+    numerator = np.dot(hists.T,hists);    
     
-    norms = np.linalg.norm(AllHists,axis=0)
+    norms = np.linalg.norm(hists,axis=0)
     norms = norms.reshape(1,N)
     denominator = np.dot(norms.T,norms)
     
@@ -248,9 +259,10 @@ def compareHistsCosine(AllHists):
 #Returns: D (An N x N matrix, where the ij entry is the chi squared
 #distance between the histogram for point cloud i and point cloud j)
 def compareHistsChiSquared(AllHists):
-    sub = AllHists[:, None, :].T - AllHists.T # used this resource: http://stackoverflow.com/questions/32473635/how-do-i-calculate-all-pairs-of-vector-differences-in-numpy
+    hists = normalizeHists(AllHists);
+    sub = hists[:, None, :].T - hists.T # used this resource: http://stackoverflow.com/questions/32473635/how-do-i-calculate-all-pairs-of-vector-differences-in-numpy
     sub2 = np.square(sub)
-    add = AllHists[:, None, :].T + AllHists.T
+    add = hists[:, None, :].T + hists.T
     div = np.divide(1.0*sub2,add)
     D = 0.5*np.sum(div,2)
     return D
@@ -262,7 +274,8 @@ def compareHistsChiSquared(AllHists):
 #Returns: D (An N x N matrix, where the ij entry is the earth mover's
 #distance between the histogram for point cloud i and point cloud j)
 def compareHistsEMD1D(AllHists):
-    histsC = np.cumsum(AllHists,axis=0)
+    hists = normalizeHists(AllHists);
+    histsC = np.cumsum(hists,axis=0)
     sub = histsC[:, None, :].T - histsC.T
     absSub = np.abs(sub)
     D = np.sum(absSub,2)
