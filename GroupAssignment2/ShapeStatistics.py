@@ -67,11 +67,14 @@ def doPCA(X):
 #NShells (number of shells), RMax (maximum radius)
 #Returns: hist (histogram of length NShells)
 def getShapeHistogram(Ps, Ns, NShells, RMax):
-    hist = np.zeros(NShells)
-    
-    ##TODO: Finish this; fill in hist
-    
-    return hist
+	# TODO - remove for loop?
+	hist = np.zeros(NShells)
+	binSize = RMax * 1.0 / NShells
+	for i in range(0,Ps.shape[1]):
+		pDist = np.linalg.norm(Ps[:,i])
+		bin = pDist / binSize
+		hist[bin] += 1;
+	return hist
     
 #Purpose: To create shape histogram with concentric spherical shells and
 #sectors within each shell, sorted in decreasing order of number of points
@@ -291,6 +294,7 @@ if __name__ == '__main__':
             PointClouds.append(Ps)
             Normals.append(Ps)
     
+
     #TODO: Finish this, run experiments.  Also in the above code, you might
     #just want to load one point cloud and test your histograms on that first
     #so you don't have to wait for all point clouds to load when making
