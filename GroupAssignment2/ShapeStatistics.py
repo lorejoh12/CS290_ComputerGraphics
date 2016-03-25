@@ -200,9 +200,12 @@ def makeAllHistograms(PointClouds, Normals, histFunction, *args):
 #Returns: D (An N x N matrix, where the ij entry is the Euclidean
 #distance between the histogram for point cloud i and point cloud j)
 def compareHistsEuclidean(AllHists):
-    N = AllHists.shape[1]
-    D = np.zeros((N, N))
-    #TODO: Finish this, fill in D
+    aa = np.sum(np.multiply(AllHists,AllHists),0);
+    bb = np.sum(np.multiply(AllHists,AllHists),0);
+    ab = np.dot(AllHists.T,AllHists);
+    
+    D2 = (aa - (2*ab).T).T + bb;
+    D = np.sqrt(D2)
     return D
 
 #Purpose: To compute the cosine distance between a set
@@ -285,6 +288,26 @@ def getPrecisionRecall(D, NPerClass = 10):
 ##                     MAIN TESTS                      ##
 #########################################################
 
+def teehee():
+    NRandSamples = 10000 #You can tweak this number
+    np.random.seed(100) #For repeatable results randomly sampling
+    #Load in and sample all meshes
+    PointClouds = []
+    Normals = []
+    for i in range(len(POINTCLOUD_CLASSES)):
+        print "LOADING CLASS %i of %i..."%(i, len(POINTCLOUD_CLASSES))
+        PCClass = []
+        for j in range(NUM_PER_CLASS):
+            m = PolyMesh()
+            filename = "models_off/%s%i.off"%(POINTCLOUD_CLASSES[i], j)
+            print "Loading ", filename
+            m.loadOffFileExternal(filename)
+            (Ps, Ns) = samplePointCloud(m, NRandSamples)
+            PointClouds.append(Ps)
+            Normals.append(Ps)
+    return [PointClouds,Normals]
+
+
 if __name__ == '__main__':  
     NRandSamples = 10000 #You can tweak this number
     np.random.seed(100) #For repeatable results randomly sampling
@@ -302,6 +325,8 @@ if __name__ == '__main__':
             (Ps, Ns) = samplePointCloud(m, NRandSamples)
             PointClouds.append(Ps)
             Normals.append(Ps)
+    
+    
     
     #TODO: Finish this, run experiments.  Also in the above code, you might
     #just want to load one point cloud and test your histograms on that first
