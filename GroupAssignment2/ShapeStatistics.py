@@ -232,8 +232,13 @@ def compareHistsEuclidean(AllHists):
 #distance between the histogram for point cloud i and point cloud j)
 def compareHistsCosine(AllHists):
     N = AllHists.shape[1]
-    D = np.zeros((N, N))
-    #TODO: Finish this, fill in D
+    numerator = np.dot(AllHists.T,AllHists);    
+    
+    norms = np.linalg.norm(AllHists,axis=0)
+    norms = norms.reshape(1,N)
+    denominator = np.dot(norms.T,norms)
+    
+    D = np.divide(numerator,denominator)
     return D
 
 #Purpose: To compute the cosine distance between a set
