@@ -35,10 +35,17 @@ def exportPointCloud(Ps, Ns, filename):
 #then scale all of the points so that the RMS distance to the origin is 1
 def samplePointCloud(mesh, N):
     (Ps, Ns) = mesh.randomlySamplePoints(N)
-    ##TODO: Center the point cloud on its centroid and normalize
-    #by its root mean square distance to the origin.  Note that this
-    #does not change the normals at all, only the points, since it's a
-    #uniform scale
+    # Find centroid. A column matrix of x,y,z averages
+    centroid = Ps.mean(1)[:,None] 
+    # Center the points on the centroid with broadcasting
+    Ps -= centroid
+    # Calculate the scale factor
+    distances = np.linalg.norm(Ps,axis=0)# Calculate the euclidean distance of all points
+    summedSquared = np.sum(np.square(distances)) # Square all distances then sum them
+    scaleFactor = math.sqrt(np.divide(N,summedSquared)) # Calculate the scaling factor from this
+    # Scale the points
+    Ps = np.multiply(Ps,scaleFactor)
+
     return (Ps, Ns)
 
 #Purpose: To sample the unit sphere as evenly as possible.  The higher
