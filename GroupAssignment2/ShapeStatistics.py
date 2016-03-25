@@ -63,6 +63,10 @@ def doPCA(X):
     V = np.eye(3) #Dummy Value
     return (eigs, V)
 
+# computes angle between numpy arrays a and b
+def angleBetween(a, b):
+        angle = np.arccos(a.dot(b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
 #########################################################
 ##                SHAPE DESCRIPTORS                    ##
 #########################################################
@@ -144,6 +148,8 @@ def getD2Histogram(Ps, Ns, DMax, NBins, NSamples):
     distances = []
     for i in range(NSamples):
         d = np.linalg.norm(Ps[:, r1[i]] - Ps[:, r2[i]])
+        if(d > DMAX):
+            continue
         distances.append(d)
         
     hist = np.histogram(distances, NBins)[0]
@@ -154,8 +160,8 @@ def getD2Histogram(Ps, Ns, DMax, NBins, NSamples):
 #Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals) (not needed here
 #but passed along for consistency), NBins (number of histogram bins), 
 #NSamples (number of triples of points sample to compute angles)
-#def getA3Histogram(Ps, Ns, NBins, NSamples):
-def getA3Histogram(NBins, NSamples):
+def getA3Histogram(Ps, Ns, NBins, NSamples):
+#def getA3Histogram(NBins, NSamples):
     m = PolyMesh()
     m.loadFile("models_off/biplane0.off") #Load a mesh
     (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
@@ -180,11 +186,45 @@ def getA3Histogram(NBins, NSamples):
 #Inputs: Ps (3 x N point cloud) (use to compute PCA), Ns (3 x N array of normals), 
 #SPoints: A 3 x S array of points sampled evenly on the unit sphere used to 
 #bin the normals
-def getEGIHistogram(Ps, Ns, SPoints):
-    S = SPoints.shape[1]
-    hist = np.zeros(S)
+#def getEGIHistogram(Ps, Ns, SPoints):
+def getEGIHistogram():
+    m = PolyMesh()
+    m.loadFile("models_off/biplane0.off") #Load a mesh
+    (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
+    
+    A = (Ps).dot(Ps.T)
+    w, v = np.linalg.eig(A)
+    
+    print w
+    print v
+    
+    maxEIndex = np.argmax(w)
+    maxEVector = v[maxEIndex]
+    
+    print maxEIndex
+    print maxEVector
+    
+    B = np.array([[1,0,0],[0,1,0],[0,0,1]])
+    
+    # need to align the v axis to the coordinate axis, but there are 4 right-handed
+    # orientations : need to check all four of them ? maybe later
+    # R dot A = B
+    # R = B dot A^-1 = B dot A.T (because A and B are orthonormal)
+    # note that this assumes our vectors are columns, and currently they're in rows
+    R = B.dot(v)
+    
+    print 'R: '+str(R)
+    
+    # now lets rotate all of the normals by this rotation matrix
+    rotatedNs = R.dot(Ns)
+    print 'Ns[:, 0]: '+str(Ns[:, 0])
+    print 'rotatedNs[:, 0]: '+str(rotatedNs[:, 0])
+    
+    #S = SPoints.shape[1]
+    #hist = np.zeros(S)
     ##TOOD: Finish this; fill in hist
-    return hist
+    #return hist
+    return Ps.shape
 
 #Purpose: To create an image which stores the amalgamation of rotating
 #a bunch of planes around the largest principal axis of a point cloud and 
