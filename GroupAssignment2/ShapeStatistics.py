@@ -187,22 +187,12 @@ def getA3Histogram(Ps, Ns, NBins, NSamples):
 #SPoints: A 3 x S array of points sampled evenly on the unit sphere used to 
 #bin the normals
 #def getEGIHistogram(Ps, Ns, SPoints):
-def getEGIHistogram():
-    m = PolyMesh()
-    m.loadFile("models_off/biplane0.off") #Load a mesh
-    (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
-    
+def getEGIHistogram(Ps, Ns, SPoints):
     A = (Ps).dot(Ps.T)
     w, v = np.linalg.eig(A)
     
-    print w
-    print v
-    
     maxEIndex = np.argmax(w)
     maxEVector = v[maxEIndex]
-    
-    print maxEIndex
-    print maxEVector
     
     B = np.array([[1,0,0],[0,1,0],[0,0,1]])
     
@@ -211,20 +201,22 @@ def getEGIHistogram():
     # R dot A = B
     # R = B dot A^-1 = B dot A.T (because A and B are orthonormal)
     # note that this assumes our vectors are columns, and currently they're in rows
-    R = B.dot(v)
-    
-    print 'R: '+str(R)
+    R = B.dot(v.T)
     
     # now lets rotate all of the normals by this rotation matrix
     rotatedNs = R.dot(Ns)
-    print 'Ns[:, 0]: '+str(Ns[:, 0])
-    print 'rotatedNs[:, 0]: '+str(rotatedNs[:, 0])
-    
-    #S = SPoints.shape[1]
-    #hist = np.zeros(S)
-    ##TOOD: Finish this; fill in hist
-    #return hist
-    return Ps.shape
+
+    dots = np.dot(rotatedNs.T, SPoints)
+    # Then find the index of the point in SPoints that yields the largest dot product for each Ps point
+    maximums = np.argmax(dots,axis=1).T
+    #Create a 2D histogram that is 1 x NSectors
+    NSectors = SPoints.shape[1]
+    hist = np.zeros((SPoints.shape[1])) 
+    # Go through each sector and create a histogram
+    for i in range(NSectors):
+        sectorElems = Ps[:,maximums==i] # Select every element in the given sector
+        hist[i]=sectorElems.shape[1] # Add the # elems to the histogram
+    return hist
 
 #Purpose: To create an image which stores the amalgamation of rotating
 #a bunch of planes around the largest principal axis of a point cloud and 
