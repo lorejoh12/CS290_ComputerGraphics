@@ -223,11 +223,6 @@ def getEGIHistogram(Ps, Ns, SPoints):
 #the plane, Extent: The extent of each axis, Dim: The number of pixels along
 #each minor axis
 def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
-#def getSpinImage(NAngles, Extent, Dim):
-    m = PolyMesh()
-    m.loadFile("models_off/biplane0.off") #Load a mesh
-    (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
-    
     A = (Ps).dot(Ps.T)
     w, v = np.linalg.eig(A)
     
