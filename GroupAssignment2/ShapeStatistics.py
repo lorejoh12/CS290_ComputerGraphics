@@ -235,8 +235,8 @@ def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
     w = w[idx]
     v = v[:,idx]
     
-    print w
-    print v
+    #print w
+    #print v
         
     # need to align the v axis to the coordinate axis
     # R dot A = B
@@ -256,8 +256,8 @@ def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
     w = w[idx]
     v = v[:,idx]
     
-    print w
-    print v
+    #print w
+    #print v
     
     theta = 2*3.14159654/NAngles
     c = np.cos(theta)
