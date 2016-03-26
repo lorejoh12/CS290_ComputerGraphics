@@ -466,6 +466,31 @@ def getPrecisionRecall(D, NPerClass = 10):
     
     return PR
 
+def runDistanceMetricsExperiments():
+    SPoints = getSphereSamples(2)
+    HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
+
+    DSpin1 = compareHistsEuclidean(HistsSpin)
+    DSpin2 = compareHistsCosine(HistsSpin)
+    DSpin3 = compareHistsChiSquared(HistsSpin)
+    DSpin4 = compareHistsEMD1D(HistsSpin)
+
+    PRSpin1 = getPrecisionRecall(DSpin1)
+    PRSpin2 = getPrecisionRecall(DSpin2)
+    PRSpin3 = getPrecisionRecall(DSpin3)
+    PRSpin4 = getPrecisionRecall(DSpin4)
+ 
+    recalls = np.linspace(1.0/9.0, 1.0, 9)
+    plt.plot(recalls, PRSpin1, 'c', label='Euclidean')
+    plt.hold(True)
+    plt.plot(recalls, PRSpin2, 'k', label='Cosine')
+    plt.plot(recalls, PRSpin3, 'r', label='ChiSquared')
+    plt.plot(recalls, PRSpin4, 'b', label='EMD1D')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.legend()
+    plt.show()
+
 def runExperiments():
     SPoints = getSphereSamples(2)
     HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
