@@ -167,12 +167,14 @@ def getA3Histogram(Ps, Ns, NBins, NSamples):
 
     angles = []
     for i in range(NSamples):
-        if r1[i] == r2[i] or r1[i] == r3[i] or r2[i] == r3[i]:
-            angles.append(0)
-            continue
         ba = Ps[:, r1[i]] - Ps[:, r2[i]]
         bc = Ps[:, r3[i]] - Ps[:, r2[i]]
-        angle = np.arccos(ba.dot(bc) / (np.linalg.norm(ba) * np.linalg.norm(bc)))
+        baNorm = np.linalg.norm(ba)
+        bcNorm = np.linalg.norm(bc)
+        if baNorm == 0 or bcNorm == 0:
+            angles.append(0)
+            continue
+        angle = np.arccos(ba.dot(bc) / (baNorm * bcNorm))
         angles.append(angle)
         
     hist = np.histogram(angles, NBins)[0]
