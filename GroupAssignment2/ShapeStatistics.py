@@ -174,6 +174,13 @@ def getA3Histogram(Ps, Ns, NBins, NSamples):
         if baNorm == 0 or bcNorm == 0:
             angles.append(0)
             continue
+        print '   '+str(ba)
+        print '   '+str(bc)
+        print '   '+str(r1)
+        print '   '+str(r2)
+        print '   '+str(r3)
+        print '   '+str(baNorm)
+        print '   '+str(bcNorm)
         angle = np.arccos(ba.dot(bc) / (baNorm * bcNorm))
         angles.append(angle)
         
@@ -461,25 +468,25 @@ def getPrecisionRecall(D, NPerClass = 10):
 
 def runExperiments():
     SPoints = getSphereSamples(2)
-    #HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
     HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 100000)
     HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 100000)
     HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
 
-    #DEGI = compareHistsEuclidean(HistsEGI)
+    DEGI = compareHistsEuclidean(HistsEGI)
     DA3 = compareHistsEuclidean(HistsA3)
     DD2 = compareHistsEuclidean(HistsD2)
     DSpin = compareHistsEuclidean(HistsSpin)
 
-    #PREGI = getPrecisionRecall(DEGI)
+    PREGI = getPrecisionRecall(DEGI)
     PRA3 = getPrecisionRecall(DA3)
     PRD2 = getPrecisionRecall(DD2)
     PRSpin = getPrecisionRecall(DSpin)
  
     recalls = np.linspace(1.0/9.0, 1.0, 9)
-    #plt.plot(recalls, PREGI, 'c', label='EGI')
-    plt.plot(recalls, PRA3, 'k', label='A3')
+    plt.plot(recalls, PREGI, 'c', label='EGI')
     plt.hold(True)
+    plt.plot(recalls, PRA3, 'k', label='A3')
     plt.plot(recalls, PRD2, 'r', label='D2')
     plt.plot(recalls, PRSpin, 'b', label='Spin')
     plt.xlabel('Recall')
@@ -499,7 +506,7 @@ if __name__ == '__main__':
     #Load in and sample all meshes
     
     numClasses = len(POINTCLOUD_CLASSES)
-    numClasses = 2 ## NC - comment this in if you don't want to load all 20 classes
+    #numClasses = 2 ## NC - comment this in if you don't want to load all 20 classes
     
     PointClouds = []
     Normals = []
