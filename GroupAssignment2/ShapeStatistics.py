@@ -174,14 +174,11 @@ def getA3Histogram(Ps, Ns, NBins, NSamples):
         if baNorm == 0 or bcNorm == 0:
             angles.append(0)
             continue
-        print '   '+str(ba)
-        print '   '+str(bc)
-        print '   '+str(r1)
-        print '   '+str(r2)
-        print '   '+str(r3)
-        print '   '+str(baNorm)
-        print '   '+str(bcNorm)
-        angle = np.arccos(ba.dot(bc) / (baNorm * bcNorm))
+        cosTheta = ba.dot(bc) / (baNorm * bcNorm)
+        if(cosTheta*cosTheta >= 1):
+            angles.append(0)
+            continue
+        angle = np.arccos(cosTheta)
         angles.append(angle)
         
     hist = np.histogram(angles, NBins)[0]
@@ -199,6 +196,11 @@ def getEGIHistogram(Ps, Ns, SPoints):
     
     maxEIndex = np.argmax(w)
     maxEVector = v[maxEIndex]
+    
+    #sorts the eigenvectors smallest to largest
+    idx = w.argsort()[::1]   
+    w = w[idx]
+    v = v[:,idx]
     
     B = np.array([[1,0,0],[0,1,0],[0,0,1]])
     
