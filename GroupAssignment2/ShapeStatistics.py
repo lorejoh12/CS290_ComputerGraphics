@@ -141,14 +141,13 @@ def getShapeHistogramPCA(Ps, Ns, NShells, RMax):
 #NBins (number of histogram bins), NSamples (number of pairs of points sample
 #to compute distances)
 def getD2Histogram(Ps, Ns, DMax, NBins, NSamples):
-#def getD2Histogram(NBins, NSamples):
     numPoints = Ps.shape[1]
-    r1 = np.random.random_integers(0, numPoints, NSamples)
-    r2 = np.random.random_integers(0, numPoints, NSamples)
+    r1 = np.random.random_integers(0, numPoints-1, NSamples)
+    r2 = np.random.random_integers(0, numPoints-1, NSamples)
     distances = []
     for i in range(NSamples):
         d = np.linalg.norm(Ps[:, r1[i]] - Ps[:, r2[i]])
-        if(d > DMAX):
+        if(d > DMax):
             continue
         distances.append(d)
         
@@ -161,18 +160,16 @@ def getD2Histogram(Ps, Ns, DMax, NBins, NSamples):
 #but passed along for consistency), NBins (number of histogram bins), 
 #NSamples (number of triples of points sample to compute angles)
 def getA3Histogram(Ps, Ns, NBins, NSamples):
-#def getA3Histogram(NBins, NSamples):
-    m = PolyMesh()
-    m.loadFile("models_off/biplane0.off") #Load a mesh
-    (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
-    
     numPoints = Ps.shape[1]
-    r1 = np.random.random_integers(0, numPoints, NSamples)
-    r2 = np.random.random_integers(0, numPoints, NSamples)
-    r3 = np.random.random_integers(0, numPoints, NSamples)
+    r1 = np.random.random_integers(0, numPoints-1, NSamples)
+    r2 = np.random.random_integers(0, numPoints-1, NSamples)
+    r3 = np.random.random_integers(0, numPoints-1, NSamples)
 
     angles = []
     for i in range(NSamples):
+        if r1[i] == r2[i] or r1[i] == r3[i] or r2[i] == r3[i]:
+            angles.append(0)
+            continue
         ba = Ps[:, r1[i]] - Ps[:, r2[i]]
         bc = Ps[:, r3[i]] - Ps[:, r2[i]]
         angle = np.arccos(ba.dot(bc) / (np.linalg.norm(ba) * np.linalg.norm(bc)))
@@ -307,6 +304,7 @@ def getSphericalHarmonicMagnitudes(Ps, Ns, VoxelRes, Extent, NHarmonics, NSphere
 def makeAllHistograms(PointClouds, Normals, histFunction, *args):
     N = len(PointClouds)
     #Call on first mesh to figure out the dimensions of the histogram
+    print "Computing histogram 1 of %i..."%(N)
     h0 = histFunction(PointClouds[0], Normals[0], *args)
     K = h0.size
     AllHists = np.zeros((K, N))
@@ -433,6 +431,7 @@ def getPrecisionRecall(D, NPerClass = 10):
     
     rowIndex = 0
     for row in ind:
+        print "row index:",rowIndex
         numFound = 0
         numSearched = 0
         position = 0
@@ -451,8 +450,12 @@ def getPrecisionRecall(D, NPerClass = 10):
                 toAdd = 1.0 * numFound / numSearched
                 PR[numFound-1] += toAdd
             position += 1
-                
+        
+        print "\tPR:",PR
+        
         rowIndex += 1
+    
+    print PR
     
     # at the end, divide PR by rowIndex (number of rows)
     PR = 1.0 * PR / rowIndex
@@ -461,26 +464,26 @@ def getPrecisionRecall(D, NPerClass = 10):
 
 def runExperiments():
     SPoints = getSphereSamples(2)
-    HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
     #HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
-    #HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 100000)
-    #HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 100000)
+    HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 100000)
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 100000)
+    HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
 
-    DSpin = compareHistsEuclidean(HistsSpin)
     #DEGI = compareHistsEuclidean(HistsEGI)
-    #DA3 = compareHistsEuclidean(HistsA3)
-    #DD2 = compareHistsEuclidean(HistsD2)
+    DA3 = compareHistsEuclidean(HistsA3)
+    DD2 = compareHistsEuclidean(HistsD2)
+    DSpin = compareHistsEuclidean(HistsSpin)
 
-    PRSpin = getPrecisionRecall(DSpin)
     #PREGI = getPrecisionRecall(DEGI)
-    #PRA3 = getPrecisionRecall(DA3)
-    #PRD2 = getPrecisionRecall(DD2)
+    PRA3 = getPrecisionRecall(DA3)
+    PRD2 = getPrecisionRecall(DD2)
+    PRSpin = getPrecisionRecall(DSpin)
  
     recalls = np.linspace(1.0/9.0, 1.0, 9)
     #plt.plot(recalls, PREGI, 'c', label='EGI')
-    #plt.hold(True)
-    #plt.plot(recalls, PRA3, 'k', label='A3')
-    #plt.plot(recalls, PRD2, 'r', label='D2')
+    plt.plot(recalls, PRA3, 'k', label='A3')
+    plt.hold(True)
+    plt.plot(recalls, PRD2, 'r', label='D2')
     plt.plot(recalls, PRSpin, 'b', label='Spin')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
@@ -499,7 +502,7 @@ if __name__ == '__main__':
     #Load in and sample all meshes
     
     numClasses = len(POINTCLOUD_CLASSES)
-    #numClasses = 2 ## NC - comment this in if you don't want to load all 20 classes
+    numClasses = 2 ## NC - comment this in if you don't want to load all 20 classes
     
     PointClouds = []
     Normals = []
