@@ -435,11 +435,67 @@ def getMyShapeDistances(PointClouds, Normals):
 #Returns PR, an (NPerClass-1) length array of average precision values for all 
 #recalls
 def getPrecisionRecall(D, NPerClass = 10):
+    N = D.shape[0]
     PR = np.zeros(NPerClass-1)
-    #TODO: Finish this, compute average precision recall graph
-    #using all point clouds as queries
+    ind = np.argsort(D)
+    
+    rowIndex = 0
+    for row in ind:
+        numFound = 0
+        numSearched = 0
+        position = 0
+
+        while position < N:
+            # skip the value if it is being compared to itself
+            if rowIndex == row[position]:
+                position += 1
+                continue
+            
+            numSearched += 1
+            
+            originalPosition = row[position]
+            if (rowIndex / NPerClass) == (originalPosition / NPerClass):
+                numFound += 1
+                toAdd = 1.0 * numFound / numSearched
+                PR[numFound-1] += toAdd
+            position += 1
+                
+        rowIndex += 1
+    
+    # at the end, divide PR by rowIndex (number of rows)
+    PR = 1.0 * PR / rowIndex
+    
     return PR
 
+def runExperiments():
+    SPoints = getSphereSamples(2)
+    HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
+    #HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    #HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 100000)
+    #HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 100000)
+
+    DSpin = compareHistsEuclidean(HistsSpin)
+    #DEGI = compareHistsEuclidean(HistsEGI)
+    #DA3 = compareHistsEuclidean(HistsA3)
+    #DD2 = compareHistsEuclidean(HistsD2)
+
+    PRSpin = getPrecisionRecall(DSpin)
+    #PREGI = getPrecisionRecall(DEGI)
+    #PRA3 = getPrecisionRecall(DA3)
+    #PRD2 = getPrecisionRecall(DD2)
+ 
+    recalls = np.linspace(1.0/9.0, 1.0, 9)
+    #plt.plot(recalls, PREGI, 'c', label='EGI')
+    #plt.hold(True)
+    #plt.plot(recalls, PRA3, 'k', label='A3')
+    #plt.plot(recalls, PRD2, 'r', label='D2')
+    plt.plot(recalls, PRSpin, 'b', label='Spin')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.legend()
+    plt.show()
+    
+    
 #########################################################
 ##                     MAIN TESTS                      ##
 #########################################################
@@ -449,10 +505,14 @@ if __name__ == '__main__':
     NRandSamples = 10000 #You can tweak this number
     np.random.seed(100) #For repeatable results randomly sampling
     #Load in and sample all meshes
+    
+    numClasses = len(POINTCLOUD_CLASSES)
+    #numClasses = 2 ## NC - comment this in if you don't want to load all 20 classes
+    
     PointClouds = []
     Normals = []
-    for i in range(len(POINTCLOUD_CLASSES)):
-        print "LOADING CLASS %i of %i..."%(i, len(POINTCLOUD_CLASSES))
+    for i in range(numClasses):
+        print "LOADING CLASS %i of %i..."%(i+1, numClasses)
         PCClass = []
         for j in range(NUM_PER_CLASS):
             m = PolyMesh()
@@ -462,8 +522,8 @@ if __name__ == '__main__':
             (Ps, Ns) = samplePointCloud(m, NRandSamples)
             PointClouds.append(Ps)
             Normals.append(Ps)
-    
-    
+
+    runExperiments()
     
     #TODO: Finish this, run experiments.  Also in the above code, you might
     #just want to load one point cloud and test your histograms on that first
