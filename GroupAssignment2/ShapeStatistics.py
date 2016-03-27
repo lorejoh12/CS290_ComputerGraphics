@@ -365,7 +365,7 @@ def compareHistsCosine(AllHists):
     denominator = np.dot(norms.T,norms)
     
     D = np.divide(numerator,denominator)
-    return D
+    return 1-D
 
 #Purpose: To compute the cosine distance between a set
 #of histograms
@@ -467,6 +467,10 @@ def getPrecisionRecall(D, NPerClass = 10):
     PR = 1.0 * PR / rowIndex
     
     return PR
+    
+def teehee():
+    #return np.array([[1,3,5],[2,4,6]])
+    return np.array([[1,3],[2,5],[3,7]])
 
 def runDistanceMetricsExperiments():
     SPoints = getSphereSamples(2)
@@ -482,7 +486,7 @@ def runDistanceMetricsExperiments():
     DSpin2 = compareHistsCosine(HistsSpin)
     PRSpin2 = getPrecisionRecall(DSpin2)
     plt.plot(recalls, PRSpin2, 'k', label='Cosine')
-    
+
     DSpin3 = compareHistsChiSquared(HistsSpin)
     PRSpin3 = getPrecisionRecall(DSpin3)
     plt.plot(recalls, PRSpin3, 'r', label='ChiSquared')
@@ -684,6 +688,7 @@ if __name__ == '__main__':
             Normals.append(Ps)
 
     runD2SampleExperiments()
+    #runExperiments()
     
     #TODO: Finish this, run experiments.  Also in the above code, you might
     #just want to load one point cloud and test your histograms on that first
