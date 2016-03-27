@@ -492,7 +492,7 @@ def runDistanceMetricsExperiments():
  
     recalls = np.linspace(1.0/9.0, 1.0, 9)
     plt.plot(recalls, PRSpin1, 'c', label='Euclidean')
-    plt.hold(True)
+    plt.hold(True)    
     plt.plot(recalls, PRSpin2, 'k', label='Cosine')
     plt.plot(recalls, PRSpin3, 'r', label='ChiSquared')
     plt.plot(recalls, PRSpin4, 'b', label='EMD1D')
@@ -503,24 +503,36 @@ def runDistanceMetricsExperiments():
 
 def runExperiments():
     SPoints = getSphereSamples(2)
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 10, 2)
+    HistsShellSector= makeAllHistograms(PointClouds, Normals, getShapeShellHistogram, 10, 2, SPoints)
+    HistsShellPCA = makeAllHistograms(PointClouds, Normals, getShapeHistogramPCA, 10, 2)
     HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
     HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 100000)
     HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 100000)
     HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
 
+    DS = compareHistsEuclidean(HistsShell)
+    DSS = compareHistsEuclidean(HistsShellSector)
+    DSPCA = compareHistsEuclidean(HistsShellPCA)
     DEGI = compareHistsEuclidean(HistsEGI)
     DA3 = compareHistsEuclidean(HistsA3)
     DD2 = compareHistsEuclidean(HistsD2)
     DSpin = compareHistsEuclidean(HistsSpin)
 
+    PRS = getPrecisionRecall(DS)
+    PRSS = getPrecisionRecall(DSS)
+    PRSPCA = getPrecisionRecall(DSPCA)
     PREGI = getPrecisionRecall(DEGI)
     PRA3 = getPrecisionRecall(DA3)
     PRD2 = getPrecisionRecall(DD2)
     PRSpin = getPrecisionRecall(DSpin)
  
     recalls = np.linspace(1.0/9.0, 1.0, 9)
-    plt.plot(recalls, PREGI, 'c', label='EGI')
+    plt.plot(recalls, PRS, 'c', label='Shell')
     plt.hold(True)
+    plt.plot(recalls, PRSS, 'g', label='ShellSector')
+    plt.plot(recalls, PRSPCA, 'y', label='ShellPCA')
+    plt.plot(recalls, PREGI, 'm', label='EGI')    
     plt.plot(recalls, PRA3, 'k', label='A3')
     plt.plot(recalls, PRD2, 'r', label='D2')
     plt.plot(recalls, PRSpin, 'b', label='Spin')
@@ -528,7 +540,131 @@ def runExperiments():
     plt.ylabel('Precision')
     plt.legend()
     plt.show()
+
+def runShellNumberExperiments():
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 1, 2)
+    DS = compareHistsEuclidean(HistsShell)
+    PRS = getPrecisionRecall(DS)
+    recalls = np.linspace(1.0/9.0, 1.0, 9)
+    plt.plot(recalls, PRS, 'c', label='Shells = 1')
+    plt.hold(True)
     
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 2, 2)
+    DS = compareHistsEuclidean(HistsShell)
+    PRS = getPrecisionRecall(DS)
+    plt.plot(recalls, PRS, 'g', label='Shells = 2')
+
+    
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 4, 2)
+    DS = compareHistsEuclidean(HistsShell)
+    PRS = getPrecisionRecall(DS)
+    plt.plot(recalls, PRS, 'y', label='Shells = 4')
+    
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 8, 2)
+    DS = compareHistsEuclidean(HistsShell)
+    PRS = getPrecisionRecall(DS)
+    plt.plot(recalls, PRS, 'm', label='Shells = 8')
+    
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 16, 2)
+    DS = compareHistsEuclidean(HistsShell)
+    PRS = getPrecisionRecall(DS)
+    plt.plot(recalls, PRS, 'k', label='Shells = 16')
+    
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 32, 2)
+    DS = compareHistsEuclidean(HistsShell)
+    PRS = getPrecisionRecall(DS)
+    plt.plot(recalls, PRS, 'r', label='Shells = 32')
+    
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 64, 2)
+    DS = compareHistsEuclidean(HistsShell)
+    PRS = getPrecisionRecall(DS)
+    plt.plot(recalls, PRS, 'b', label='Shells = 64')
+   
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.legend()
+    plt.show()
+    
+def runD2SampleExperiments():
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 512)
+    DD2 = compareHistsEuclidean(HistsD2)
+    PRD2 = getPrecisionRecall(DD2)
+    recalls = np.linspace(1.0/9.0, 1.0, 9)
+    plt.plot(recalls, PRD2, 'c', label='Samples = 512')
+    plt.hold(True)
+    
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 1024)
+    DD2 = compareHistsEuclidean(HistsD2)
+    PRD2 = getPrecisionRecall(DD2)
+    plt.plot(recalls, PRD2, 'g', label='Samples = 1024')
+     
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 2048)
+    DD2 = compareHistsEuclidean(HistsD2)
+    PRD2 = getPrecisionRecall(DD2)
+    plt.plot(recalls, PRD2, 'y', label='Samples = 2048')
+    
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 4096)
+    DD2 = compareHistsEuclidean(HistsD2)
+    PRD2 = getPrecisionRecall(DD2)
+    plt.plot(recalls, PRD2, 'm', label='Samples = 4096')
+    
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 8192)
+    DD2 = compareHistsEuclidean(HistsD2)
+    PRD2 = getPrecisionRecall(DD2)
+    plt.plot(recalls, PRD2, 'k', label='Samples = 8192')
+    
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 16384)
+    DD2 = compareHistsEuclidean(HistsD2)
+    PRD2 = getPrecisionRecall(DD2)
+    plt.plot(recalls, PRD2, 'r', label='Samples = 16384')
+
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 32768)
+    DD2 = compareHistsEuclidean(HistsD2)
+    PRD2 = getPrecisionRecall(DD2)
+    plt.plot(recalls, PRD2, 'b', label='Samples = 32768')
+    
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.legend()
+    plt.show()
+    
+def runEGIExperiments():
+    SPoints = getSphereSamples(1)
+    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    DEGI = compareHistsEuclidean(HistsEGI)
+    PREGI = getPrecisionRecall(DEGI)
+    recalls = np.linspace(1.0/9.0, 1.0, 9)
+    plt.plot(recalls, PREGI, 'c', label='Resolution=1')
+    plt.hold(True)
+    
+    SPoints = getSphereSamples(2)
+    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    DEGI = compareHistsEuclidean(HistsEGI)
+    PREGI = getPrecisionRecall(DEGI)
+    plt.plot(recalls, PREGI, 'g', label='Resolution=2')
+
+    SPoints = getSphereSamples(3)
+    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    DEGI = compareHistsEuclidean(HistsEGI)
+    PREGI = getPrecisionRecall(DEGI)
+    plt.plot(recalls, PREGI, 'y', label='Resolution=3')
+
+    SPoints = getSphereSamples(4)
+    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    DEGI = compareHistsEuclidean(HistsEGI)
+    PREGI = getPrecisionRecall(DEGI)
+    plt.plot(recalls, PREGI, 'm', label='Resolution=4')
+
+    SPoints = getSphereSamples(5)
+    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    DEGI = compareHistsEuclidean(HistsEGI)
+    PREGI = getPrecisionRecall(DEGI)
+    plt.plot(recalls, PREGI, 'k', label='Resolution=5')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.legend()
+    plt.show()
     
 #########################################################
 ##                     MAIN TESTS                      ##
@@ -557,8 +693,8 @@ if __name__ == '__main__':
             PointClouds.append(Ps)
             Normals.append(Ps)
 
+    runEGIExperiments()
     #runExperiments()
-    runDistanceMetricsExperiments()
     
     #TODO: Finish this, run experiments.  Also in the above code, you might
     #just want to load one point cloud and test your histograms on that first
