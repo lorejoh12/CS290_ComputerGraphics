@@ -365,7 +365,7 @@ def compareHistsCosine(AllHists):
     denominator = np.dot(norms.T,norms)
     
     D = np.divide(numerator,denominator)
-    return D
+    return 1-D
 
 #Purpose: To compute the cosine distance between a set
 #of histograms
@@ -467,27 +467,31 @@ def getPrecisionRecall(D, NPerClass = 10):
     PR = 1.0 * PR / rowIndex
     
     return PR
+    
+def teehee():
+    #return np.array([[1,3,5],[2,4,6]])
+    return np.array([[1,3],[2,5],[3,7]])
 
 def runDistanceMetricsExperiments():
     SPoints = getSphereSamples(2)
     HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
 
-    DSpin1 = compareHistsEuclidean(HistsSpin)
+    #DSpin1 = compareHistsEuclidean(HistsSpin)
     DSpin2 = compareHistsCosine(HistsSpin)
-    DSpin3 = compareHistsChiSquared(HistsSpin)
-    DSpin4 = compareHistsEMD1D(HistsSpin)
+    #DSpin3 = compareHistsChiSquared(HistsSpin)
+    #DSpin4 = compareHistsEMD1D(HistsSpin)
 
-    PRSpin1 = getPrecisionRecall(DSpin1)
+    #PRSpin1 = getPrecisionRecall(DSpin1)
     PRSpin2 = getPrecisionRecall(DSpin2)
-    PRSpin3 = getPrecisionRecall(DSpin3)
-    PRSpin4 = getPrecisionRecall(DSpin4)
+    #PRSpin3 = getPrecisionRecall(DSpin3)
+    #PRSpin4 = getPrecisionRecall(DSpin4)
  
     recalls = np.linspace(1.0/9.0, 1.0, 9)
-    plt.plot(recalls, PRSpin1, 'c', label='Euclidean')
+    #plt.plot(recalls, PRSpin1, 'c', label='Euclidean')
     plt.hold(True)
     plt.plot(recalls, PRSpin2, 'k', label='Cosine')
-    plt.plot(recalls, PRSpin3, 'r', label='ChiSquared')
-    plt.plot(recalls, PRSpin4, 'b', label='EMD1D')
+    #plt.plot(recalls, PRSpin3, 'r', label='ChiSquared')
+    #plt.plot(recalls, PRSpin4, 'b', label='EMD1D')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()
@@ -549,7 +553,8 @@ if __name__ == '__main__':
             PointClouds.append(Ps)
             Normals.append(Ps)
 
-    runExperiments()
+    #runExperiments()
+    runDistanceMetricsExperiments()
     
     #TODO: Finish this, run experiments.  Also in the above code, you might
     #just want to load one point cloud and test your histograms on that first
