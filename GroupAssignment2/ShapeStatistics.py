@@ -666,6 +666,25 @@ def runEGIExperiments():
     plt.legend()
     plt.show()
     
+def runRandomComparisonExperiments():
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 10, 2)
+    DS = compareHistsEuclidean(HistsShell)
+    PRS = getPrecisionRecall(DS)
+ 
+    HistsRandom = np.random.random(HistsShell.shape)
+    DR = compareHistsEuclidean(HistsRandom)
+    PRR = getPrecisionRecall(DR)
+ 
+    recalls = np.linspace(1.0/9.0, 1.0, 9)
+    plt.plot(recalls, PRS, 'c', label='Shell')
+    plt.hold(True)
+    plt.plot(recalls, PRR, 'g', label='Random')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.legend()
+    plt.show()
+    
 #########################################################
 ##                     MAIN TESTS                      ##
 #########################################################
@@ -693,7 +712,7 @@ if __name__ == '__main__':
             PointClouds.append(Ps)
             Normals.append(Ps)
 
-    runEGIExperiments()
+    runRandomComparisonExperiments()
     #runExperiments()
     
     #TODO: Finish this, run experiments.  Also in the above code, you might
