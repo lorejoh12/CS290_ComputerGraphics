@@ -474,11 +474,14 @@ def teehee():
 
 def runDistanceMetricsExperiments():
     SPoints = getSphereSamples(2)
-    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
-    HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
-    HistsShellSector = makeAllHistograms(PointClouds, Normals, getShapeShellHistogram, 10, 2, SPoints)
+    #HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    #HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
+    #HistsShellSector = makeAllHistograms(PointClouds, Normals, getShapeShellHistogram, 10, 2, SPoints)
+    #HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 10, 2)
+    HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 100000)
+    #HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 100000)
 
-    Hists = HistsShellSector
+    Hists = HistsA3
 
     DSpin1 = compareHistsEuclidean(Hists)
     DSpin2 = compareHistsCosine(Hists)
@@ -712,8 +715,9 @@ if __name__ == '__main__':
             PointClouds.append(Ps)
             Normals.append(Ps)
 
-    runRandomComparisonExperiments()
+    #runRandomComparisonExperiments()
     #runExperiments()
+    runDistanceMetricsExperiments()
     
     #TODO: Finish this, run experiments.  Also in the above code, you might
     #just want to load one point cloud and test your histograms on that first
