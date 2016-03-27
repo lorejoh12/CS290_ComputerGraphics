@@ -367,7 +367,7 @@ def compareHistsCosine(AllHists):
     D = np.divide(numerator,denominator)
     return 1-D
 
-#Purpose: To compute the cosine distance between a set
+#Purpose: To compute the chi square distance between a set
 #of histograms
 #Inputs: AllHists (K x N matrix of histograms, where K is the length
 #of each histogram and N is the number of point clouds)
@@ -474,24 +474,28 @@ def teehee():
 
 def runDistanceMetricsExperiments():
     SPoints = getSphereSamples(2)
+    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
     HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
+    HistsShellSector = makeAllHistograms(PointClouds, Normals, getShapeShellHistogram, 10, 2, SPoints)
 
-    #DSpin1 = compareHistsEuclidean(HistsSpin)
-    DSpin2 = compareHistsCosine(HistsSpin)
-    #DSpin3 = compareHistsChiSquared(HistsSpin)
-    #DSpin4 = compareHistsEMD1D(HistsSpin)
+    Hists = HistsShellSector
 
-    #PRSpin1 = getPrecisionRecall(DSpin1)
+    DSpin1 = compareHistsEuclidean(Hists)
+    DSpin2 = compareHistsCosine(Hists)
+    DSpin3 = compareHistsChiSquared(Hists)
+    DSpin4 = compareHistsEMD1D(Hists)
+
+    PRSpin1 = getPrecisionRecall(DSpin1)
     PRSpin2 = getPrecisionRecall(DSpin2)
-    #PRSpin3 = getPrecisionRecall(DSpin3)
-    #PRSpin4 = getPrecisionRecall(DSpin4)
+    PRSpin3 = getPrecisionRecall(DSpin3)
+    PRSpin4 = getPrecisionRecall(DSpin4)
  
     recalls = np.linspace(1.0/9.0, 1.0, 9)
-    #plt.plot(recalls, PRSpin1, 'c', label='Euclidean')
+    plt.plot(recalls, PRSpin1, 'c', label='Euclidean')
     plt.hold(True)
     plt.plot(recalls, PRSpin2, 'k', label='Cosine')
-    #plt.plot(recalls, PRSpin3, 'r', label='ChiSquared')
-    #plt.plot(recalls, PRSpin4, 'b', label='EMD1D')
+    plt.plot(recalls, PRSpin3, 'r', label='ChiSquared')
+    plt.plot(recalls, PRSpin4, 'b', label='EMD1D')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()
