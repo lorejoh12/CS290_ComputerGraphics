@@ -8,6 +8,11 @@ from PolyMesh import *
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm, colors
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+from scipy.special import sph_harm
+
 
 POINTCLOUD_CLASSES = ['biplane', 'desk_chair', 'dining_chair', 'fighter_jet', 'fish', 'flying_bird', 'guitar', 'handgun', 'head', 'helicopter', 'human', 'human_arms_out', 'potted_plant', 'race_car', 'sedan', 'shelves', 'ship', 'sword', 'table', 'vase']
 
@@ -294,11 +299,37 @@ def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
 #to 30x30x30 voxels), Extent: The number of units along each axis (if 2, then 
 #rasterize in the box [-1, 1] x [-1, 1] x [-1, 1]), NHarmonics: The number of spherical
 #harmonics, NSpheres, the number of concentric spheres to take
-def getSphericalHarmonicMagnitudes(Ps, Ns, VoxelRes, Extent, NHarmonics, NSpheres):
-    hist = np.zeros((NSpheres, NHarmonics))
-    #TODO: Finish this
+#def getSphericalHarmonicMagnitudes(Ps, Ns, VoxelRes, Extent, NHarmonics, NSpheres):
+def getSphericalHarmonicMagnitudes(VoxelRes, Extent, NHarmonics, NSpheres):
+    m = PolyMesh()
+    m.loadFile("models_off/biplane0.off") #Load a mesh
+    (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
+    H, edges = np.histogramdd(Ps.T, bins=(VoxelRes, VoxelRes, VoxelRes))
     
-    return hist.flatten()
+    H[H > 0] = 1
+    
+    # now we do something with spherical harmonics...
+    phi = np.linspace(0, np.pi, 100)
+    theta = np.linspace(0, 2*np.pi, 100)
+    phi, theta = np.meshgrid(phi, theta)
+
+    m, l = 2, 3
+
+    # Calculate the spherical harmonic Y(l,m) and normalize to [0,1]
+    fcolors = sph_harm(m, l, theta, phi).real
+    fmax, fmin = fcolors.max(), fcolors.min()
+    fcolors = (fcolors - fmin)/(fmax - fmin)
+    
+    r = 1 # radius of the sphere we're on
+    
+    x = np.sin(phi) * np.cos(theta) * r
+    y = np.sin(phi) * np.sin(theta) * r
+    z = np.cos(phi) * r
+    
+    #TODO: Finish this
+    hist = np.zeros((NSpheres, NHarmonics))
+
+    return H
 
 #Purpose: Utility function for wrapping around the statistics functions.
 #Inputs: PointClouds (a python list of N point clouds), Normals (a python
