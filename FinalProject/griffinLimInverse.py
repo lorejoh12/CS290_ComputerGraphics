@@ -33,7 +33,7 @@ def STFT(signal, window_size, hop_size):
         spectrum[i] = fft_vals
     # Second half of the spectrum is redundant for real signals
     col_index=0
-    if W%2 == 0:
+    if window_size%2 == 0:
         # Even
         col_index = window_size/2+1
     else:
@@ -51,7 +51,7 @@ def STFT(signal, window_size, hop_size):
 #   Nx1 signal
 def iSTFT(spectrum, window_size, hop_size):
     #First, put back redundant STFT
-    if W%2==0:
+    if window_size%2==0:
         #Even case
         spectrum2 = spectrum[:,1:np.shape(spectrum)[1]-1]
         spectrum = np.concatenate((spectrum,np.fliplr(np.conjugate(spectrum2))),axis=1)
