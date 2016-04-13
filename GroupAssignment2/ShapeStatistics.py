@@ -292,22 +292,15 @@ def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
     return hist.flatten()
 
 
-#Purpose: To create a histogram of spherical harmonic magnitudes in concentric
-#spheres after rasterizing the point cloud to a voxel grid
-#Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals, not used here), 
-#VoxelRes: The number of voxels along each axis (for instance, if 30, then rasterize
-#to 30x30x30 voxels), Extent: The number of units along each axis (if 2, then 
-#rasterize in the box [-1, 1] x [-1, 1] x [-1, 1]), NHarmonics: The number of spherical
-#harmonics, NSpheres, the number of concentric spheres to take
-#def getSphericalHarmonicMagnitudes(Ps, Ns, VoxelRes, Extent, NHarmonics, NSpheres):
-def getSphericalHarmonicMagnitudes(VoxelRes, Extent, NHarmonics, NSpheres):
-    m = PolyMesh()
-    m.loadFile("models_off/biplane0.off") #Load a mesh
-    (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
-    
-    # make Voxel representation
-    # H, edges = np.histogramdd(Ps.T, bins=(VoxelRes, VoxelRes, VoxelRes))
-    # H[H > 0] = 1
+#Purpose: To create a histogram of spherical harmonic magnitudes in concentric spheres
+#Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals, not used here), RMax: maximum 
+# radius, NHarmonics: the number of spherical harmonics, NSpheres: the number of concentric 
+# spheres to take
+def getSphericalHarmonicMagnitudes(Ps, Ns, RMax, NHarmonics, NSpheres):
+    #m = PolyMesh()
+    #m.loadFile("models_off/biplane0.off") #Load a mesh
+    #(Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
+
     res = 2 # this can (should be?) changed
     
     SPoints = getSphereSamples(res)
@@ -333,72 +326,30 @@ def getSphericalHarmonicMagnitudes(VoxelRes, Extent, NHarmonics, NSpheres):
         phi = np.arccos(z/np.sqrt(x*x + y*y + z*z))
         Bs[i] = np.array([theta, phi])
     
-    # NSectors = SPoints.shape[1] #A number of sectors equal to the number of
-    # #points sampled on the sphere
-    # # First, dot product all points in Ps against all points in SPoints.
-    # # We're doing a matrix multiplication of Ps^T with SPoints. This will give an NxM matrix
-    # # Where the rows are the dot product magnitudes of each point of Ps with all the points in SPoints
-    # dots = np.dot(Ps.T, SPoints)
-    # # Then find the index of the point in SPoints that yields the largest dot product for each Ps point
-    # maximums = np.argmax(dots,axis=1).T
-    # #Create a 2D histogram that is NShells x NSectors
-    # NSectors = SPoints.shape[1]
-    # hist = np.zeros((NShells, 0)) 
-    # # Go through each sector and create a histogram
-    # for i in range(NSectors):
-        # sectorElems = Ps[:,maximums==i] # Select every element in the given sector
-        # sectorHistogram=np.array(np.histogram(np.linalg.norm(sectorElems,axis=0),NShells,(0,RMax))[0])[np.newaxis].T # Create a histogram for the sector in Column form
-        # hist=np.hstack((hist,sectorHistogram)) # Add the column to the histogram
-    
-    # # now we do something with spherical harmonics...
-    # phi = np.linspace(0, np.pi, 100)
-    # theta = np.linspace(0, 2*np.pi, 100)
-    # phi, theta = np.meshgrid(phi, theta)
-
-    m = 0
-    # Calculate the spherical harmonic Y(l,m) and normalize to [0,1]
-    # fcolors = sph_harm(m, l, Bs[:,0] , Bs[:,1])
-    # fmax, fmin = fcolors.max(), fcolors.min()
-    # fcolors = (fcolors - fmin)/(fmax - fmin)
-    F = np.zeros((B, B))
-    for m in range(0, B):
+    # Calculate the spherical harmonics matrix
+    F = np.zeros((NHarmonics, B))
+    for m in range(0, NHarmonics):
         # the paper ignores "l" (the degree) by summing up degrees from -m to m
         F0 = np.absolute(sph_harm(np.abs(-m), m, Bs[:,0] , Bs[:,1]))
         for l in range(-m+1, m+1):
             F0 += np.absolute(sph_harm(np.abs(l), m, Bs[:,0] , Bs[:,1]))
         F[m] = F0
     
-    r = 1 # radius of the sphere we're on
-   
-    # x = np.sin(phi) * np.cos(theta) * r
-    # y = np.sin(phi) * np.sin(theta) * r
-    # z = np.cos(phi) * r
-    
-    # #TODO: Finish this
-    # hist = np.zeros((NSpheres, NHarmonics))
-
-    return F
-
-def getShapeShellHistogram(Ps, Ns, NShells, RMax, SPoints):
-    NSectors = SPoints.shape[1] #A number of sectors equal to the number of
-    #points sampled on the sphere
-    # First, dot product all points in Ps against all points in SPoints.
-    # We're doing a matrix multiplication of Ps^T with SPoints. This will give an NxM matrix
-    # Where the rows are the dot product magnitudes of each point of Ps with all the points in SPoints
+    # now we compute h (a BxN matrix, B = number of sampled sphere points, N = number of shells)(see getShapeShellHistogram for detailed comments)
     dots = np.dot(Ps.T, SPoints)
-    # Then find the index of the point in SPoints that yields the largest dot product for each Ps point
     maximums = np.argmax(dots,axis=1).T
-    #Create a 2D histogram that is NShells x NSectors
-    NSectors = SPoints.shape[1]
-    hist = np.zeros((NShells, 0)) 
-    # Go through each sector and create a histogram
-    for i in range(NSectors):
+    h = np.zeros((NSpheres, 0)) 
+    for i in range(B):
         sectorElems = Ps[:,maximums==i] # Select every element in the given sector
-        sectorHistogram=np.array(np.histogram(np.linalg.norm(sectorElems,axis=0),NShells,(0,RMax))[0])[np.newaxis].T # Create a histogram for the sector in Column form
-        hist=np.hstack((hist,sectorHistogram)) # Add the column to the histogram
-    # Sort shells in descending order in rows
-    hist=-np.sort(-hist,axis=1) 
-    return hist.flatten() #Flatten the 2D histogram to a 1D array
+        sectorHistogram = np.array(np.histogram(np.linalg.norm(sectorElems,axis=0), NSpheres, (0,RMax))[0])[np.newaxis].T # Create a histogram for the sector in Column form
+        h=np.hstack((h,sectorHistogram)) # Add the column to the histogram
+    
+    h = h.T
+    
+    # finally, we compute the spherical harmonic coefficient matrix
+    H = F.dot(h)
+
+    return H
     
 #Purpose: Utility function for wrapping around the statistics functions.
 #Inputs: PointClouds (a python list of N point clouds), Normals (a python
