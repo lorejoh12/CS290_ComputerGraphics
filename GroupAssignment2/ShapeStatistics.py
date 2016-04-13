@@ -311,9 +311,11 @@ def getSphericalHarmonicMagnitudes(VoxelRes, Extent, NHarmonics, NSpheres):
     res = 2 # this can (should be?) changed
     
     SPoints = getSphereSamples(res)
+    B = SPoints.shape[1]
+    
     # point n = SPoints[:,n]
-    Bs = np.zeros((SPoints.shape[1], 2))
-    for i in range(0, SPoints.shape[1]):
+    Bs = np.zeros((B, 2))
+    for i in range(0, B):
         x = SPoints[0, i]
         y = SPoints[1, i]
         z = SPoints[2, i]
@@ -353,15 +355,21 @@ def getSphericalHarmonicMagnitudes(VoxelRes, Extent, NHarmonics, NSpheres):
     # theta = np.linspace(0, 2*np.pi, 100)
     # phi, theta = np.meshgrid(phi, theta)
 
-    m, l = 2, 3
-
+    m = 0
     # Calculate the spherical harmonic Y(l,m) and normalize to [0,1]
-    fcolors = sph_harm(m, l, theta, phi).real
+    # fcolors = sph_harm(m, l, Bs[:,0] , Bs[:,1])
     # fmax, fmin = fcolors.max(), fcolors.min()
     # fcolors = (fcolors - fmin)/(fmax - fmin)
+    F = np.zeros((B, B))
+    for m in range(0, B):
+        # the paper ignores "l" (the degree) by summing up degrees from -m to m
+        F0 = np.absolute(sph_harm(np.abs(-m), m, Bs[:,0] , Bs[:,1]))
+        for l in range(-m+1, m+1):
+            F0 += np.absolute(sph_harm(np.abs(l), m, Bs[:,0] , Bs[:,1]))
+        F[m] = F0
     
     r = 1 # radius of the sphere we're on
-    
+   
     # x = np.sin(phi) * np.cos(theta) * r
     # y = np.sin(phi) * np.sin(theta) * r
     # z = np.cos(phi) * r
@@ -369,7 +377,7 @@ def getSphericalHarmonicMagnitudes(VoxelRes, Extent, NHarmonics, NSpheres):
     # #TODO: Finish this
     # hist = np.zeros((NSpheres, NHarmonics))
 
-    return Bs
+    return F
 
 def getShapeShellHistogram(Ps, Ns, NShells, RMax, SPoints):
     NSectors = SPoints.shape[1] #A number of sectors equal to the number of
