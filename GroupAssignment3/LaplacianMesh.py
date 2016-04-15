@@ -19,11 +19,38 @@ import scipy.io as sio
 #Inputs: mesh (polygon mesh object), anchorsIdx (indices of the anchor points)
 #Returns: L (An (N+K) x N sparse matrix, where N is the number of vertices
 #and K is the number of anchors)
+WEIGHT = 1
+
 def getLaplacianMatrixUmbrella(mesh, anchorsIdx):
-    #TODO: These are dummy values
-    I = [0]
-    J = [0]
-    V = [0]
+    N = len(mesh.vertices)
+    K = len(anchorsIdx)
+    I = []
+    J = []
+    V = []
+    for i in range(0, N):
+        vertex = mesh.vertices[i]
+        # append the D matrix
+        I.append(vertex.ID)
+        J.append(vertex.ID)
+        V.append(len(vertex.getVertexNeighbors()))
+        for j in range(len(vertex.getVertexNeighbors())):
+            neighbor = vertex.getVertexNeighbors()[j]
+            # append the -A matrix
+            I.append(neighbor.ID)
+            J.append(vertex.ID)
+            V.append(-1)
+            I.append(vertex.ID)
+            J.append(neighbor.ID)
+            V.append(-1)
+    
+    # append the anchors
+    row = N
+    for index in anchorsIdx:
+        I.append(row)
+        J.append(index)
+        V.append(WEIGHT)
+        row+=1      
+                     
     L = sparse.coo_matrix((V, (I, J)), shape=(N+K, N)).tocsr()
     return L
 
@@ -33,12 +60,62 @@ def getLaplacianMatrixUmbrella(mesh, anchorsIdx):
 #Returns: L (An (N+K) x N sparse matrix, where N is the number of vertices
 #and K is the number of anchors)
 def getLaplacianMatrixCotangent(mesh, anchorsIdx):
-    #TODO: These are dummy values
-    I = [0]
-    J = [0]
-    V = [0]
+    I = []
+    J = []
+    V = []
+    N = len(mesh.vertices)
+    K = len(anchorsIdx)
+    
+    for vi in mesh.vertices:
+        iiEntry = 0 # sum (subtract) up as we go through the j's
+        for neighbor in vi.getVertexNeighbors():
+            edge = getEdgeInCommon(vi, neighbor)
+            cotangentA = 0 # assume 0 if the face is null (TODO: is this OK?)
+            cotangentB = 0 # assume 0 if the face is null (TODO: is this OK?)
+            if edge.f1:
+                vertices = edge.f1.getVertices()
+                for vk in vertices:
+                    if(vk != vi and vk != neighbor):
+                        # vk is the third vertex
+                        cotangentA = computeCotAngle(mesh.VPos[vi.ID],mesh.VPos[neighbor.ID],mesh.VPos[vk.ID])
+            if edge.f2:
+                vertices = edge.f2.getVertices()
+                for vk in vertices:
+                    if(vk != vi and vk != neighbor):
+                        # vk is the third vertex
+                        cotangentB = computeCotAngle(mesh.VPos[vi.ID],mesh.VPos[neighbor.ID],mesh.VPos[vk.ID])
+
+            ijEntry = -0.5*(cotangentB + cotangentA)
+            iiEntry -= ijEntry
+            # set the ij entry
+            I.append(vi.ID)
+            J.append(neighbor.ID)
+            V.append(ijEntry)
+
+        # set the ii entry
+        I.append(vi.ID)
+        J.append(vi.ID)
+        V.append(iiEntry)
+
+    # append the anchors
+    row = len(mesh.vertices)
+    for index in anchorsIdx:
+        I.append(row)
+        J.append(index)
+        V.append(WEIGHT)
+        row+=1
+
     L = sparse.coo_matrix((V, (I, J)), shape=(N+K, N)).tocsr()
     return L
+
+# computes the cotangent of the angle between CA and CB
+# assume A = 1 x 3 matrix of [Ax, Bx, Cx]
+def computeCotAngle(A, B, C):
+    CA = np.subtract(A, C)
+    CB = np.subtract(B, C)
+    dotProd = np.dot(CA, CB)
+    crossProdMag = np.linalg.norm(np.cross(CA, CB))
+    return dotProd/crossProdMag
 
 #Purpose: Given a mesh, to perform Laplacian mesh editing by solving the system
 #of delta coordinates and anchors in the least squared sense
@@ -46,8 +123,18 @@ def getLaplacianMatrixCotangent(mesh, anchorsIdx):
 #coordinates), anchorsIdx (a parallel array of the indices of the anchors)
 #Returns: Nothing (should update mesh.VPos)
 def solveLaplacianMesh(mesh, anchors, anchorsIdx):
-    print "TODO"
-    #TODO: Finish this
+    # Solve for the Laplacian and delta matrix.
+    N = len(mesh.vertices)
+    K = len(anchorsIdx)
+    laplacian_matrix = getLaplacianMatrixUmbrella(mesh, anchorsIdx)
+    delta = np.array(laplacian_matrix.dot(mesh.VPos))
+    # Now update the anchors in the delta matrix
+    for i in range(K):
+        delta[N+i,:]=anchors[i,:].T*WEIGHT
+    # Update vpos with the new vertex locations
+    print laplacian_matrix.shape
+    print delta.shape
+    lsqr(laplacian_matrix,delta)
 
 #Purpose: Given a few RGB colors on a mesh, smoothly interpolate those colors
 #by using their values as anchors and 
