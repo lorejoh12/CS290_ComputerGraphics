@@ -123,7 +123,7 @@ def solveLaplacianMesh(mesh, anchors, anchorsIdx):
     # Solve for the Laplacian and delta matrix.
     N = len(mesh.vertices)
     K = len(anchorsIdx)
-    laplacian_matrix = getLaplacianMatrixUmbrella(mesh, anchorsIdx)
+    laplacian_matrix = getLaplacianMatrixCotangent(mesh, anchorsIdx)
     delta = np.array(laplacian_matrix.dot(mesh.VPos))
     # Now update the anchors in the delta matrix
     for i in range(K):
@@ -220,8 +220,8 @@ def makeMinimalSurface(mesh, anchors, anchorsIdx):
         
     delta = np.zeros((N, 3))
     # Now update the anchors in the delta matrix
-    for i in anchorsIdx:
-        delta[i,:]=anchors[i,:].T
+    for i in range(0, len(anchorsIdx)):
+        delta[anchorsIdx[i],:]=anchors[i,:].T
     # Update vpos with the new vertex locations
     x = lsqr(laplacian_matrix,delta[:,0])
     y = lsqr(laplacian_matrix,delta[:,1])
