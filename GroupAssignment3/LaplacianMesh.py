@@ -216,13 +216,6 @@ def makeMinimalSurface(mesh, anchors, anchorsIdx):
             else:
                 V[i] = 0
                 
-    print "len(I): "+str(len(I))
-    print "len(J): "+str(len(J))
-    print "len(V): "+str(len(V))
-    print "max(I): "+str(max(I))
-    print "max(J): "+str(max(J))
-
-    print "N: "+str(N)
     laplacian_matrix = sparse.coo_matrix((V, (I, J)), shape=(N, N)).tocsr()
         
     delta = np.zeros((N, 3))
@@ -292,8 +285,59 @@ def getHKS(mesh, K, t):
 #into the mesh of the four points that are to be anchored, in CCW order)
 #Returns: nothing (update mesh.VPos)
 def doFlattening(mesh, quadIdxs):
-    print "TODO"
-    #TODO: Finish this
+    # we assume the points are given as in the picture, where the shared edge is between vertices 1 and 3
+    if(not len(quadIdxs) == 4):
+        print '  Error, points do not conform to standard'
+    N = len(mesh.vertices)
+    # we don't want any anchors at the bottom of the matrix
+    temp = []
+    laplacian_matrix = getLaplacianMatrixUmbrella(mesh, temp)
+    # update the anchors in the L matrix
+    (I,J,V) = sparse.find(laplacian_matrix)
+    
+    if mesh.vertices[quadIdxs[2]] in mesh.vertices[quadIdxs[0]].getVertexNeighbors():
+        idx = [0, 2]
+        print '  0 and 2'
+    elif mesh.vertices[quadIdxs[1]] in mesh.vertices[quadIdxs[3]].getVertexNeighbors():
+        idx = [1, 3]
+        print '  1 and 3'
+    else:
+        print '  Error, points do not conform to standard'
+
+    for i in range(0, len(I)):
+        #overwrite anchor rows in matrix
+        if I[i] in quadIdxs:
+            if I[i] == J[i]:
+                V[i] = 1
+            else:
+                V[i] = 0
+        # if I[i] == quadIdxs[idx[0]]:
+            # if J[i] == quadIdxs[idx[1]]:
+                # V[i] = 0
+            # if J[i] == I[i]:
+                # V[i] = V[i] - 1
+        # if I[i] == quadIdxs[idx[1]]:
+            # if J[i] == quadIdxs[idx[0]]:
+                # V[i] = 0
+            # if J[i] == I[i]:
+                # V[i] = V[i] - 1
+                
+    laplacian_matrix = sparse.coo_matrix((V, (I, J)), shape=(N, N)).tocsr()
+        
+    delta = np.zeros((N, 3))
+    # Now update the anchors in the delta matrix
+    delta[quadIdxs[0],:]=np.array([0, 0, 0])
+    delta[quadIdxs[1],:]=np.array([0, 1, 0])
+    delta[quadIdxs[2],:]=np.array([1, 1, 0])
+    delta[quadIdxs[3],:]=np.array([1, 0, 0])
+
+    # Update vpos with the new vertex locations
+    x = lsqr(laplacian_matrix,delta[:,0])
+    y = lsqr(laplacian_matrix,delta[:,1])
+    z = lsqr(laplacian_matrix,delta[:,2])
+    mesh.VPos[:,0] = x[0]
+    mesh.VPos[:,1] = y[0]
+    mesh.VPos[:,2] = z[0]
 
 #Purpose: Given 4 vertex indices on a quadrilateral, to anchor them to the 
 #square and flatten the rest of the mesh inside of that square.  Then, to 
@@ -302,9 +346,60 @@ def doFlattening(mesh, quadIdxs):
 #into the mesh of the four points that are to be anchored, in CCW order)
 #Returns: U (an N x 2 matrix of texture coordinates)
 def getTexCoords(mesh, quadIdxs):
-    N = mesh.VPos.shape[0]
-    U = np.zeros((N, 2)) #Dummy value
-    return U #TODO: Finish this
+    # we assume the points are given as in the picture, where the shared edge is between vertices 1 and 3
+    if(not len(quadIdxs) == 4):
+        print '  Error, points do not conform to standard'
+    N = len(mesh.vertices)
+    # we don't want any anchors at the bottom of the matrix
+    temp = []
+    laplacian_matrix = getLaplacianMatrixUmbrella(mesh, temp)
+    # update the anchors in the L matrix
+    (I,J,V) = sparse.find(laplacian_matrix)
+    
+    if mesh.vertices[quadIdxs[2]] in mesh.vertices[quadIdxs[0]].getVertexNeighbors():
+        idx = [0, 2]
+        print '  0 and 2'
+    elif mesh.vertices[quadIdxs[1]] in mesh.vertices[quadIdxs[3]].getVertexNeighbors():
+        idx = [1, 3]
+        print '  1 and 3'
+    else:
+        print '  Error, points do not conform to standard'
+
+    for i in range(0, len(I)):
+        #overwrite anchor rows in matrix
+        if I[i] in quadIdxs:
+            if I[i] == J[i]:
+                V[i] = 1
+            else:
+                V[i] = 0
+        # if I[i] == quadIdxs[idx[0]]:
+            # if J[i] == quadIdxs[idx[1]]:
+                # V[i] = 0
+            # if J[i] == I[i]:
+                # V[i] = V[i] - 1
+        # if I[i] == quadIdxs[idx[1]]:
+            # if J[i] == quadIdxs[idx[0]]:
+                # V[i] = 0
+            # if J[i] == I[i]:
+                # V[i] = V[i] - 1
+                
+    laplacian_matrix = sparse.coo_matrix((V, (I, J)), shape=(N, N)).tocsr()
+        
+    delta = np.zeros((N, 3))
+    # Now update the anchors in the delta matrix
+    delta[quadIdxs[0],:]=np.array([0, 0, 0])
+    delta[quadIdxs[1],:]=np.array([0, 1, 0])
+    delta[quadIdxs[2],:]=np.array([1, 1, 0])
+    delta[quadIdxs[3],:]=np.array([1, 0, 0])
+
+    # Update vpos with the new vertex locations
+    x = lsqr(laplacian_matrix,delta[:,0])
+    y = lsqr(laplacian_matrix,delta[:,1])
+    z = lsqr(laplacian_matrix,delta[:,2])
+    U = np.zeros((N, 2))
+    U[:,0] = x[0]
+    U[:,1] = y[0]
+    return U
 
 if __name__ == '__main__':
     print "TODO"
