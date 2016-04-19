@@ -203,8 +203,39 @@ def doLaplacianSharpen(mesh):
 #coordinates), anchorsIdx (a parallel array of the indices of the anchors)
 #Returns: Nothing (should update mesh.VPos)
 def makeMinimalSurface(mesh, anchors, anchorsIdx):
-    print "TODO"
-    #TODO: Finish this
+    N = len(mesh.vertices)
+    # we don't want any anchors at the bottom of the matrix
+    temp = []
+    laplacian_matrix = getLaplacianMatrixCotangent(mesh, temp)
+    # update the anchors in the L matrix
+    (I,J,V) = sparse.find(laplacian_matrix)
+    for i in range(0, len(I)):
+        if I[i] in anchorsIdx:
+            if I[i] == J[i]:
+                V[i] = 1
+            else:
+                V[i] = 0
+                
+    print "len(I): "+str(len(I))
+    print "len(J): "+str(len(J))
+    print "len(V): "+str(len(V))
+    print "max(I): "+str(max(I))
+    print "max(J): "+str(max(J))
+
+    print "N: "+str(N)
+    laplacian_matrix = sparse.coo_matrix((V, (I, J)), shape=(N, N)).tocsr()
+        
+    delta = np.zeros((N, 3))
+    # Now update the anchors in the delta matrix
+    for i in anchorsIdx:
+        delta[i,:]=anchors[i,:].T
+    # Update vpos with the new vertex locations
+    x = lsqr(laplacian_matrix,delta[:,0])
+    y = lsqr(laplacian_matrix,delta[:,1])
+    z = lsqr(laplacian_matrix,delta[:,2])
+    mesh.VPos[:,0] = x[0]
+    mesh.VPos[:,1] = y[0]
+    mesh.VPos[:,2] = z[0]
 
 ##############################################################
 ##        Spectral Representations / Heat Flow              ##
