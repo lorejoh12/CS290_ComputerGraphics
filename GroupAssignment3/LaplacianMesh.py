@@ -142,26 +142,58 @@ def solveLaplacianMesh(mesh, anchors, anchorsIdx):
 #coordinates), anchorsIdx (a parallel array of the indices of the anchors)
 #Returns: Nothing (should update mesh.VPos)
 def smoothColors(mesh, colors, colorsIdx):
-    N = mesh.VPos.shape[0]
-    colors = np.zeros((N, 3)) #dummy values (all black)
-    #TODO: Finish this
-    return colors
+    N = len(mesh.vertices)
+    K = len(colorsIdx)
+    laplacian_matrix = getLaplacianMatrixCotangent(mesh, colorsIdx)
+    delta = np.zeros((N+K, 3))
+    # Now update the anchors in the delta matrix
+    for i in range(K):
+        delta[N+i,:]=colors[i,:].T*WEIGHT
+    # Update vpos with the new vertex locations
+    x = lsqr(laplacian_matrix,delta[:,0])
+    y = lsqr(laplacian_matrix,delta[:,1])
+    z = lsqr(laplacian_matrix,delta[:,2])
+    _colors = np.zeros((N, 3))
+    _colors[:,0] = x[0]
+    _colors[:,1] = y[0]
+    _colors[:,2] = z[0]
+    
+    return _colors
 
 #Purpose: Given a mesh, to smooth it by subtracting off the delta coordinates
 #from each vertex, normalized by the degree of that vertex
 #Inputs: mesh (polygon mesh object)
 #Returns: Nothing (should update mesh.VPos)
 def doLaplacianSmooth(mesh):
-    print "TODO"
-    #TODO: Finish this
+    # Solve for the Laplacian and delta matrix.
+    N = len(mesh.vertices)
+    anchorsIdx = []
+    L = getLaplacianMatrixCotangent(mesh, anchorsIdx)
+    (I,J,V) = sparse.find(L)
+    V2 = V
+    L_N = L
+    for i in range(0, len(I)):
+        V2[i] = V[i] / L[I[i], I[i]]
+    L_N = sparse.coo_matrix((V2, (I, J)), shape=(N, N)).tocsr()
+    mesh.VPos = mesh.VPos - (np.array(L_N.dot(mesh.VPos)))
+    
 
 #Purpose: Given a mesh, to sharpen it by adding back the delta coordinates
 #from each vertex, normalized by the degree of that vertex
 #Inputs: mesh (polygon mesh object)
 #Returns: Nothing (should update mesh.VPos)
 def doLaplacianSharpen(mesh):
-    print "TODO"
-    #TODO: Finish this
+    # Solve for the Laplacian and delta matrix.
+    N = len(mesh.vertices)
+    anchorsIdx = []
+    L = getLaplacianMatrixCotangent(mesh, anchorsIdx)
+    (I,J,V) = sparse.find(L)
+    V2 = V
+    L_N = L
+    for i in range(0, len(I)):
+        V2[i] = V[i] / L[I[i], I[i]]
+    L_N = sparse.coo_matrix((V2, (I, J)), shape=(N, N)).tocsr()
+    mesh.VPos = mesh.VPos + (np.array(L_N.dot(mesh.VPos)))
 
 #Purpose: Given a mesh and a set of anchors, to simulate a minimal surface
 #by replacing the rows of the laplacian matrix with the anchors, setting
