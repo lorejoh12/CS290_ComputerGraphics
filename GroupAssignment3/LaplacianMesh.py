@@ -47,7 +47,7 @@ def getLaplacianMatrixUmbrella(mesh, anchorsIdx):
         J.append(index)
         V.append(WEIGHT)
         row+=1      
-    
+
     L = sparse.coo_matrix((V, (I, J)), shape=(N+K, N)).tocsr()
     return L
 
@@ -123,7 +123,7 @@ def solveLaplacianMesh(mesh, anchors, anchorsIdx):
     # Solve for the Laplacian and delta matrix.
     N = len(mesh.vertices)
     K = len(anchorsIdx)
-    laplacian_matrix = getLaplacianMatrixCotangent(mesh, anchorsIdx)
+    laplacian_matrix = getLaplacianMatrixUmbrella(mesh, anchorsIdx)
     delta = np.array(laplacian_matrix.dot(mesh.VPos))
     # Now update the anchors in the delta matrix
     for i in range(K):
