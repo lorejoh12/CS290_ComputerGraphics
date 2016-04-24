@@ -239,16 +239,18 @@ def makeMinimalSurface(mesh, anchors, anchorsIdx):
 #Inputs: mesh (polygon mesh object), K (number of eigenvalues/eigenvectors)
 #Returns: (eigvalues, eigvectors): a tuple of the eigenvalues and eigenvectors
 def getLaplacianSpectrum(mesh, K):
-    #TODO: Finish this
-    return (None, None)
+    temp = []
+    L = getLaplacianMatrixUmbrella(mesh,temp)
+    (eigvalues, eigvectors) = eigsh(L.asfptype(), K, which='LM', sigma = 0)
+    return (eigvalues, eigvectors)
 
 #Purpose: Given a mesh, to use the first K eigenvectors of its Laplacian
 #to perform a lowpass filtering
 #Inputs: mesh (polygon mesh object), K (number of eigenvalues/eigenvectors)
 #Returns: Nothing (should update mesh.VPos)
 def doLowpassFiltering(mesh, K):
-    print "TODO"
-    #TODO: Finish this
+    (eigvalues, eigvectors) = getLaplacianSpectrum(mesh, K)
+    mesh.VPos = (eigvectors.dot(eigvectors.T)).dot(mesh.VPos)
     
 #Purpose: Given a mesh, to simulate heat flow by projecting initial conditions
 #onto the eigenvectors of the Laplacian matrix, and then to sum up the heat
