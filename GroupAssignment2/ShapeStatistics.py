@@ -1,3 +1,5 @@
+#LIFE IS HAPPY
+
 #Purpose: To implement a suite of 3D shape statistics and to use them for point
 #cloud classification
 #TODO: Fill in all of this code for group assignment 2
@@ -83,8 +85,8 @@ def angleBetween(a, b):
 #NShells (number of shells), RMax (maximum radius)
 #Returns: hist (histogram of length NShells)
 def getShapeHistogram(Ps, Ns, NShells, RMax):
-	norms = np.linalg.norm(Ps,axis=0)
-	return np.array(np.histogram(norms,NShells,(0,RMax))[0])
+    norms = np.linalg.norm(Ps,axis=0)
+    return np.array(np.histogram(norms,NShells,(0,RMax))[0])
     
 #Purpose: To create shape histogram with concentric spherical shells and
 #sectors within each shell, sorted in decreasing order of number of points
@@ -92,6 +94,7 @@ def getShapeHistogram(Ps, Ns, NShells, RMax):
 #but passed along for consistency), NShells (number of shells), 
 #RMax (maximum radius), SPoints: A 3 x S array of points sampled evenly on 
 #the unit sphere (get these with the function "getSphereSamples")
+# NOTE: THIS WAS CHANGED FROM THE ORIGINAL
 def getShapeShellHistogram(Ps, Ns, NShells, RMax, SPoints):
     NSectors = SPoints.shape[1] #A number of sectors equal to the number of
     #points sampled on the sphere
@@ -109,9 +112,8 @@ def getShapeShellHistogram(Ps, Ns, NShells, RMax, SPoints):
         sectorElems = Ps[:,maximums==i] # Select every element in the given sector
         sectorHistogram=np.array(np.histogram(np.linalg.norm(sectorElems,axis=0),NShells,(0,RMax))[0])[np.newaxis].T # Create a histogram for the sector in Column form
         hist=np.hstack((hist,sectorHistogram)) # Add the column to the histogram
-    # Sort shells in descending order in rows
-    hist=-np.sort(-hist,axis=1) 
-    return hist.flatten() #Flatten the 2D histogram to a 1D array
+      
+    return hist
 
 #Purpose: To create shape histogram with concentric spherical shells and to 
 #compute the PCA eigenvalues in each shell
@@ -291,16 +293,122 @@ def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
     #plt.show()
     return hist.flatten()
 
+#Returns the squared distance between two 3D points
+def sqDistBetweenTwoPoints(p1, p2):
+    a = (p2[0] - p1[0])**2
+    b = (p2[1] - p1[1])**2
+    c = (p2[2] - p1[2])**2 
+    return a + b + c;
 
+#Returns the angle between two unit vectors
+def getAngleBetweenTwoUnitVectors(v1, v2):
+    return np.arccos(v1.dot(v2))
+
+#Returns approximately the smallest angle between any two points
+#Assumes that SPoints is evenly sampled for a sphere
+def getMinimumAngleAmongPoints(SPoints):
+    firstPoint = SPoints[:, 0]
+    minDist = 5 # assume 2 is the maximum distance btwn any two points (b/c unit sphere)
+    # go through each point and find the point closest to the first point
+    for i in range(1, SPoints.shape[1]): #1 is intentional!
+        point = SPoints[:, i]
+        sqDist = sqDistBetweenTwoPoints(firstPoint,point)
+        if sqDist < minDist:
+            minDist = sqDist
+            neighborPoint = point
+    # now that we have the first point and the closest point to it, return the angle between them
+    return getAngleBetweenTwoUnitVectors(firstPoint, neighborPoint)
+    
+#Returns a point cloud from a 2D histogram
+#The point cloud is generated with random sampling
+def getSamplePointsFrom2DHistogram(numSamples, hist, shellWidth):
+    res = 3 # this should correspond to the resolution of the original sampling in making the histogram
+    SPoints = getSphereSamples(res)
+    
+    # this is the angle between the two nearest sampled points
+    # which is the same as the angle of the sampled cone around the vectors
+    angle = getMinimumAngleAmongPoints(SPoints)
+    
+    # get flattened matrix of probability from the densities
+    flatProbabilities = (1.0*hist/np.sum(hist)).flatten()
+    # get random samples of indexes of sectors
+    randomSectorIndexes = np.random.choice(len(flatProbabilities), numSamples, p=flatProbabilities)
+    
+    histWidth = hist.shape[1]
+    
+        # initialize Ps
+    Ps = np.zeros((3,numSamples))
+    
+    for i in range(0, len(randomSectorIndexes)):
+        index = randomSectorIndexes[i]
+        # calculate the INDEXES of the shell and sector
+        shellIndex = index / histWidth # index of shell in hist
+        sectorIndex = index % histWidth  # index of sector in hist
+
+        #TODO find radius range, phi range, and theta range, and randomly sample in them to determine new point location
+        # shell is zero indexed
+        radiusMin = shellIndex*shellWidth
+        radiusMax = (shellIndex+1)*shellWidth
+
+        # phi, theta location somewhere around the sphere sampled vector
+        sector = SPoints[:, sectorIndex] # I think? might be backwards
+        [_theta, _phi] = convertRectangularToPolar(sector[0], sector[1], sector[2])
+        phiMin = _phi - angle/2.0
+        phiMax = _phi + angle/2.0
+        thetaMin = _theta - angle/2.0
+        thetaMax = _theta + angle/2.0
+        
+        # randomly sample these
+        randomRadius = (radiusMax - radiusMin) * np.random.random_sample() + radiusMin
+        randomPhi = (phiMax - phiMin) * np.random.random_sample() + phiMin
+        randomTheta = (thetaMax - thetaMin) * np.random.random_sample() + thetaMin
+        
+        # convert returns [x, y, z]
+        ret = convertPolarToRectangular(randomRadius, randomPhi, randomTheta)
+        Ps[0,i] = ret[0]
+        Ps[1,i] = ret[1]
+        Ps[2,i] = ret[2]
+        
+    return Ps
+        
+def convertRectangularToPolar(x, y, z):
+    if(x == 0 and y>0):
+        theta = np.pi / 2
+    elif (x == 0):
+        theta = -np.pi/2
+    else:
+        theta = np.arctan(y/x)
+
+    if(x < 0):
+        theta = theta + np.pi
+
+    phi = np.arccos(z/np.sqrt(x*x + y*y + z*z))
+    
+    return [theta,phi]
+
+def convertPolarToRectangular(r, phi, theta):
+    x = r * np.cos(theta) * np.sin(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(phi)
+    return [x, y, z]
+        
 #Purpose: To create a histogram of spherical harmonic magnitudes in concentric spheres
 #Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals, not used here), RMax: maximum 
-# radius, NHarmonics: the number of spherical harmonics, NSpheres: the number of concentric 
-# spheres to take
-def getSphericalHarmonicMagnitudes(Ps, Ns, RMax, NHarmonics, NSpheres):
+# radius, NHarmonics: the number of spherical harmonics, 
+# WindowSize: The size of each shell's window, HopSize: the hop between windows
+def getSphericalHarmonicMagnitudes(Ps, Ns, RMax, NHarmonics, windowSize, hopSize):
     #m = PolyMesh()
     #m.loadFile("models_off/biplane0.off") #Load a mesh
     #(Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
-
+        # Figure out how many shells we will need to take
+    hopsPerWindow = windowSize/hopSize
+    numShells = RMax/HopSize-hopsPerWindow
+    if hopsPerWindow-math.floor(hopsPerWindow)>0:
+      print "Warning: Window size is not an integer multiple of hop size"
+    hopsPerWindow = math.floor(hopsPerWindow)
+    if numShells-math.floor(numShells)>0:
+      print "Warning: The max radius does not accomodate an integer number of shells"
+    numShells = math.floor(numShells)
     res = 2 # this can (should be?) changed
     
     SPoints = getSphereSamples(res)
@@ -334,15 +442,21 @@ def getSphericalHarmonicMagnitudes(Ps, Ns, RMax, NHarmonics, NSpheres):
         for l in range(-m+1, m+1):
             F0 += np.absolute(sph_harm(np.abs(l), m, Bs[:,0] , Bs[:,1]))
         F[m] = F0
-    
     # now we compute h (a BxN matrix, B = number of sampled sphere points, N = number of shells)(see getShapeShellHistogram for detailed comments)
     dots = np.dot(Ps.T, SPoints)
     maximums = np.argmax(dots,axis=1).T
-    h = np.zeros((NSpheres, 0)) 
+    h = np.zeros((numShells, 0)) 
     for i in range(B):
         sectorElems = Ps[:,maximums==i] # Select every element in the given sector
-        sectorHistogram = np.array(np.histogram(np.linalg.norm(sectorElems,axis=0), NSpheres, (0,RMax))[0])[np.newaxis].T # Create a histogram for the sector in Column form
-        h=np.hstack((h,sectorHistogram)) # Add the column to the histogram
+        # Make the histogram of the sector elements
+        pointDistances = np.linalg.norm(Ps, axis=0) # Compute the distance of each point from the origin
+        numPoints = sectorElems.shape[1]
+        hist = np.zeros((0,1))
+        for k in range(numShells):
+            shellPoints = sectorElems[:,np.logical_and(pointDistances>hopSize*numShells,pointDistances<hopSize*numShells+windowSize)]
+            numShellPoints = shellPoints.shape[1]
+            hist = np.vstack((hist,[numShellPoints]))
+        h=np.hstack((h,hist)) # Add the column to the histogram
     
     h = h.T
     
@@ -380,9 +494,9 @@ def makeAllHistograms(PointClouds, Normals, histFunction, *args):
 #of each histogram and N is the number of point clouds)
 #Returns: hists (a K x N matrix of the normalized histograms)
 def normalizeHists(AllHists):
-	sums = np.sum(AllHists,axis=0)
-	hists = 1.0 * AllHists / sums
-	return hists
+    sums = np.sum(AllHists,axis=0)
+    hists = 1.0 * AllHists / sums
+    return hists
 
 #Purpose: To compute the euclidean distance between a set
 #of histograms
@@ -747,30 +861,17 @@ def runRandomComparisonExperiments():
 if __name__ == '__main__':  
     NRandSamples = 10000 #You can tweak this number
     np.random.seed(100) #For repeatable results randomly sampling
-    #Load in and sample all meshes
-    
-    numClasses = len(POINTCLOUD_CLASSES)
-    #numClasses = 2 ## NC - comment this in if you don't want to load all 20 classes
-    
-    PointClouds = []
-    Normals = []
-    for i in range(numClasses):
-        print "LOADING CLASS %i of %i..."%(i+1, numClasses)
-        PCClass = []
-        for j in range(NUM_PER_CLASS):
-            m = PolyMesh()
-            filename = "models_off/%s%i.off"%(POINTCLOUD_CLASSES[i], j)
-            print "Loading ", filename
-            m.loadOffFileExternal(filename)
-            (Ps, Ns) = samplePointCloud(m, NRandSamples)
-            PointClouds.append(Ps)
-            Normals.append(Ps)
-
-    #runRandomComparisonExperiments()
-    #runExperiments()
-    runDistanceMetricsExperiments()
-    
-    #TODO: Finish this, run experiments.  Also in the above code, you might
-    #just want to load one point cloud and test your histograms on that first
-    #so you don't have to wait for all point clouds to load when making
-    #minor tweaks
+    #Load in the mesh we care about
+    m = PolyMesh()
+    filename = "models_off/biplane0.off"
+    m.loadOffFileExternal(filename)
+    (Ps, Ns) = samplePointCloud(m, NRandSamples)
+    exportPointCloud(Ps,Ns,"originalPointCloud.pts")
+    num_shells = 100
+    RMax = 10
+    # I set num shells to 100, the distance to 10, and the number of sphere samples to 258.
+    histogram = getShapeShellHistogram(Ps, Ns, num_shells, RMax,getSphereSamples(3))
+    # Note this method assumes res is equal to 3. Sampling 1000 samples. 
+    newPointCloud = getSamplePointsFrom2DHistogram(NRandSamples, histogram, 1.0*RMax/num_shells)
+    # Now we'll export this point cloud. Normals will be completely wrong because we never calculated them
+    exportPointCloud(newPointCloud,Ns,"ReconstructedCloud.pts")
