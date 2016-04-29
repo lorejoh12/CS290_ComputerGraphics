@@ -432,24 +432,9 @@ def convertPolarToRectangular(r, phi, theta):
     z = r * np.cos(phi)
     return [x, y, z]
         
-#Purpose: To create a histogram of spherical harmonic magnitudes in concentric spheres
-#Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals, not used here), RMax: maximum 
-# radius, NHarmonics: the number of spherical harmonics, 
-# WindowSize: The size of each shell's window, HopSize: the hop between windows
-def getSphericalHarmonicMagnitudes(Ps, Ns, RMax, NHarmonics, windowSize, hopSize):
-    #m = PolyMesh()
-    #m.loadFile("models_off/biplane0.off") #Load a mesh
-    #(Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
-        # Figure out how many shells we will need to take
-    hopsPerWindow = windowSize/hopSize
-    numShells = RMax/HopSize-hopsPerWindow
-    if hopsPerWindow-math.floor(hopsPerWindow)>0:
-      print "Warning: Window size is not an integer multiple of hop size"
-    hopsPerWindow = math.floor(hopsPerWindow)
-    if numShells-math.floor(numShells)>0:
-      print "Warning: The max radius does not accomodate an integer number of shells"
-    numShells = math.floor(numShells)
-    res = 2 # this can (should be?) changed
+# computes the spherical harmonic F matrix
+def computeFMatrix(NHarmonics, magnitude = True):
+    res = 3 # this can (should be?) changed
     
     SPoints = getSphereSamples(res)
     B = SPoints.shape[1]
@@ -475,35 +460,174 @@ def getSphericalHarmonicMagnitudes(Ps, Ns, RMax, NHarmonics, windowSize, hopSize
         Bs[i] = np.array([theta, phi])
     
     # Calculate the spherical harmonics matrix
-    F = np.zeros((NHarmonics, B))
+    F = np.zeros((NHarmonics, B))+0j
     for m in range(0, NHarmonics):
         # the paper ignores "l" (the degree) by summing up degrees from -m to m
-        F0 = np.absolute(sph_harm(np.abs(-m), m, Bs[:,0] , Bs[:,1]))
+        if(magnitude):
+            F0 = np.absolute(sph_harm(-m, m, Bs[:,0] , Bs[:,1]))
+        else:
+            F0 = sph_harm(np.abs(-m), m, Bs[:,0] , Bs[:,1])
+            
         for l in range(-m+1, m+1):
-            F0 += np.absolute(sph_harm(np.abs(l), m, Bs[:,0] , Bs[:,1]))
-        F[m] = F0
+            F0 += np.absolute(sph_harm(l, m, Bs[:,0] , Bs[:,1]))
+        F[m, :] = F0
+    
+    return F
+
+
+def computeUnraveledFMatrix(NHarmonics, magnitude = True):
+    res = 3 # this can (should be?) changed
+    
+    SPoints = getSphereSamples(res)
+    B = SPoints.shape[1]
+    
+    # point n = SPoints[:,n]
+    Bs = np.zeros((B, 2))
+    for i in range(0, B):
+        x = SPoints[0, i]
+        y = SPoints[1, i]
+        z = SPoints[2, i]
+        # construct the Bs matrix
+        if(x == 0 and y>0):
+            theta = np.pi / 2
+        elif (x == 0):
+            theta = -np.pi/2
+        else:
+            theta = np.arctan(y/x)
+            
+        if(x < 0):
+            theta = theta + np.pi
+        
+        phi = np.arccos(z/np.sqrt(x*x + y*y + z*z))
+        Bs[i] = np.array([theta, phi])
+    
+    # Calculate the spherical harmonics matrix
+    numCols = NHarmonics*NHarmonics + 2*NHarmonics + 1
+    F = np.zeros((numCols, B))+0j
+    i = 0
+    for m in range(0, NHarmonics):
+        # print "   m: "+str(m)
+        for l in range(-m, m+1):
+            if(magnitude):
+                F0 = np.absolute(sph_harm(l, m, Bs[:,0] , Bs[:,1]))
+            else:
+                F0 = sph_harm(l, m, Bs[:,0] , Bs[:,1])
+            F[i, :] = F0
+            i = i+1
+
+    return F
+ 
+ 
+#Purpose: To create a histogram of spherical harmonic magnitudes in concentric spheres
+#Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals, not used here), RMax: maximum 
+# radius, NHarmonics: the number of spherical harmonics, 
+# WindowSize: The size of each shell's window, HopSize: the hop between windows
+def getSphericalHarmonicMagnitudes(Ps, Ns, RMax, NHarmonics, NSpheres, F):
+    # m = PolyMesh()
+    # m.loadFile("models_off/biplane0.off") #Load a mesh
+    # (Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
+    F = computeUnraveledFMatrix(NHarmonics, False)
+    
+    res = 3 # this can (should be?) changed
+    
+    SPoints = getSphereSamples(res)
+    B = SPoints.shape[1]
+
     # now we compute h (a BxN matrix, B = number of sampled sphere points, N = number of shells)(see getShapeShellHistogram for detailed comments)
     dots = np.dot(Ps.T, SPoints)
     maximums = np.argmax(dots,axis=1).T
-    h = np.zeros((numShells, 0)) 
+    h = np.zeros((NSpheres, 0)) 
+    print "computing h"
     for i in range(B):
         sectorElems = Ps[:,maximums==i] # Select every element in the given sector
-        # Make the histogram of the sector elements
-        pointDistances = np.linalg.norm(Ps, axis=0) # Compute the distance of each point from the origin
-        numPoints = sectorElems.shape[1]
-        hist = np.zeros((0,1))
-        for k in range(numShells):
-            shellPoints = sectorElems[:,np.logical_and(pointDistances>hopSize*numShells,pointDistances<hopSize*numShells+windowSize)]
-            numShellPoints = shellPoints.shape[1]
-            hist = np.vstack((hist,[numShellPoints]))
-        h=np.hstack((h,hist)) # Add the column to the histogram
+        sectorHistogram = np.array(np.histogram(np.linalg.norm(sectorElems,axis=0), NSpheres, (0,RMax))[0])[np.newaxis].T # Create a histogram for the sector in Column form
+        h=np.hstack((h,sectorHistogram)) # Add the column to the histogram
     
     h = h.T
+        
+    # in the paper they stored only a 1 if there were any points in the voxel and a 0 if there weren't
+     # h[np.where(h>0)] = 1
+    
+    # print "H shape: "+str(h.shape)
+    # print "h max: "+str(np.max(np.array(h)))
     
     # finally, we compute the spherical harmonic coefficient matrix
     H = F.dot(h)
 
-    return H
+    h_approx = np.absolute(F.T.dot(H))
+    h_approx = np.floor(np.sum(h)*1.0*h_approx/np.sum(h_approx))
+    # return H.flatten()
+    return [h_approx.T, h.T]
+
+
+# def getSphericalHarmonicMagnitudes(Ps, Ns, RMax, NHarmonics, windowSize, hopSize):
+    # #m = PolyMesh()
+    # #m.loadFile("models_off/biplane0.off") #Load a mesh
+    # #(Ps, Ns) = samplePointCloud(m, 20000) #Sample 20,000 points and associated normals
+        # # Figure out how many shells we will need to take
+    # hopsPerWindow = windowSize/hopSize
+    # numShells = RMax/HopSize-hopsPerWindow
+    # if hopsPerWindow-math.floor(hopsPerWindow)>0:
+      # print "Warning: Window size is not an integer multiple of hop size"
+    # hopsPerWindow = math.floor(hopsPerWindow)
+    # if numShells-math.floor(numShells)>0:
+      # print "Warning: The max radius does not accomodate an integer number of shells"
+    # numShells = math.floor(numShells)
+    # res = 3 # this can (should be?) changed
+    
+    # SPoints = getSphereSamples(res)
+    # B = SPoints.shape[1]
+    
+    # # point n = SPoints[:,n]
+    # Bs = np.zeros((B, 2))
+    # for i in range(0, B):
+        # x = SPoints[0, i]
+        # y = SPoints[1, i]
+        # z = SPoints[2, i]
+        # # construct the Bs matrix
+        # if(x == 0 and y>0):
+            # theta = np.pi / 2
+        # elif (x == 0):
+            # theta = -np.pi/2
+        # else:
+            # theta = np.arctan(y/x)
+            
+        # if(x < 0):
+            # theta = theta + np.pi
+        
+        # phi = np.arccos(z/np.sqrt(x*x + y*y + z*z))
+        # Bs[i] = np.array([theta, phi])
+    
+    # # Calculate the spherical harmonics matrix
+    # F = np.zeros((NHarmonics, B))
+    # for m in range(0, NHarmonics):
+        # # the paper ignores "l" (the degree) by summing up degrees from -m to m
+        # F0 = np.absolute(sph_harm(np.abs(-m), m, Bs[:,0] , Bs[:,1]))
+        # for l in range(-m+1, m+1):
+            # F0 += np.absolute(sph_harm(np.abs(l), m, Bs[:,0] , Bs[:,1]))
+        # F[:, m] = F0 #change to be row-wise
+    # # now we compute h (a BxN matrix, B = number of sampled sphere points, N = number of shells)(see getShapeShellHistogram for detailed comments)
+    # dots = np.dot(Ps.T, SPoints)
+    # maximums = np.argmax(dots,axis=1).T
+    # h = np.zeros((numShells, 0)) 
+    # for i in range(B):
+        # sectorElems = Ps[:,maximums==i] # Select every element in the given sector
+        # # Make the histogram of the sector elements
+        # pointDistances = np.linalg.norm(Ps, axis=0) # Compute the distance of each point from the origin
+        # numPoints = sectorElems.shape[1]
+        # hist = np.zeros((0,1))
+        # for k in range(numShells):
+            # shellPoints = sectorElems[:,np.logical_and(pointDistances>hopSize*numShells,pointDistances<hopSize*numShells+windowSize)]
+            # numShellPoints = shellPoints.shape[1]
+            # hist = np.vstack((hist,[numShellPoints]))
+        # h=np.hstack((h,hist)) # Add the column to the histogram
+    
+    # h = h.T
+    
+    # # finally, we compute the spherical harmonic coefficient matrix
+    # H = F.dot(h)
+
+    # return H
     
 #Purpose: Utility function for wrapping around the statistics functions.
 #Inputs: PointClouds (a python list of N point clouds), Normals (a python
@@ -714,36 +838,43 @@ def runExperiments():
     HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 10, 2)
     HistsShellSector= makeAllHistograms(PointClouds, Normals, getShapeShellHistogram, 10, 2, SPoints)
     HistsShellPCA = makeAllHistograms(PointClouds, Normals, getShapeHistogramPCA, 10, 2)
-    HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
-    HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 100000)
-    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 100000)
+    #HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
+    #HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 30000)
+    HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 30000)
     HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
+    
+    F = computeFMatrix(9)
+    
+    HistsSpherical = makeAllHistograms(PointClouds, Normals, getSphericalHarmonicMagnitudes, 2, 7, 32, F)
 
     DS = compareHistsEuclidean(HistsShell)
     DSS = compareHistsEuclidean(HistsShellSector)
     DSPCA = compareHistsEuclidean(HistsShellPCA)
-    DEGI = compareHistsEuclidean(HistsEGI)
-    DA3 = compareHistsEuclidean(HistsA3)
+    #DEGI = compareHistsEuclidean(HistsEGI)
+    #DA3 = compareHistsEuclidean(HistsA3)
     DD2 = compareHistsEuclidean(HistsD2)
     DSpin = compareHistsEuclidean(HistsSpin)
+    DSpherical = compareHistsEuclidean(HistsSpherical)
 
     PRS = getPrecisionRecall(DS)
     PRSS = getPrecisionRecall(DSS)
     PRSPCA = getPrecisionRecall(DSPCA)
-    PREGI = getPrecisionRecall(DEGI)
-    PRA3 = getPrecisionRecall(DA3)
+    # PREGI = getPrecisionRecall(DEGI)
+    #PRA3 = getPrecisionRecall(DA3)
     PRD2 = getPrecisionRecall(DD2)
     PRSpin = getPrecisionRecall(DSpin)
+    PRSpherical = getPrecisionRecall(DSpherical)
  
     recalls = np.linspace(1.0/9.0, 1.0, 9)
     plt.plot(recalls, PRS, 'c', label='Shell')
     plt.hold(True)
     plt.plot(recalls, PRSS, 'g', label='ShellSector')
     plt.plot(recalls, PRSPCA, 'y', label='ShellPCA')
-    plt.plot(recalls, PREGI, 'm', label='EGI')    
-    plt.plot(recalls, PRA3, 'k', label='A3')
+    #plt.plot(recalls, PREGI, 'm', label='EGI')    
+    #plt.plot(recalls, PRA3, 'k', label='A3')
     plt.plot(recalls, PRD2, 'r', label='D2')
     plt.plot(recalls, PRSpin, 'b', label='Spin')
+    plt.plot(recalls, PRSpherical, 'm', label='Spherical')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.legend()
@@ -905,8 +1036,32 @@ def calculateHistogramSize(histogram):
 ##                     MAIN TESTS                      ##
 #########################################################
 
-
 if __name__ == '__main__':  
+
+
+        # NRandSamples = 10000 #You can tweak this number
+    # np.random.seed(100) #For repeatable results randomly sampling
+    # #Load in and sample all meshes
+    
+    # numClasses = len(POINTCLOUD_CLASSES)
+    # #numClasses = 8 ## NC - comment this in if you don't want to load all 20 classes
+    
+    # PointClouds = []
+    # Normals = []
+    # for i in range(numClasses):
+        # print "LOADING CLASS %i of %i..."%(i+1, numClasses)
+        # PCClass = []
+        # for j in range(NUM_PER_CLASS):
+            # m = PolyMesh()
+            # filename = "models_off/%s%i.off"%(POINTCLOUD_CLASSES[i], j)
+            # print "Loading ", filename
+            # m.loadOffFileExternal(filename)
+            # (Ps, Ns) = samplePointCloud(m, NRandSamples)
+            # PointClouds.append(Ps)
+            # Normals.append(Ps)
+
+    # runRandomComparisonExperiments()
+    # runExperiments()
     NRandSamples = 10000 #You can tweak this number
     np.random.seed(100) #For repeatable results randomly sampling
     #Load in the mesh we care about
@@ -915,20 +1070,43 @@ if __name__ == '__main__':
     m.loadOffFileExternal(filename)
     (Ps, Ns) = samplePointCloud(m, NRandSamples)
     exportPointCloud(Ps,Ns,"originalPointCloud.pts")
-    num_shells = 51
 
-    bigHistogram = getDifferentialShapeShellHistogram(Ps, Ns, num_shells,(5,))
-    scaledHistogram = getDifferentialShapeShellHistogram(Ps, Ns, num_shells,(3,4,5))
-    # Calculate savings versus a traditional histogram
-    newPointCloud = getSamplePointsFrom2DHistogram(NRandSamples, bigHistogram)
-    savings = calculateHistogramSize(scaledHistogram)*1.0/calculateHistogramSize(bigHistogram)
-    print savings
-    # Calculate savings versus the original mesh
-    originalSavings = calculateHistogramSize(scaledHistogram)*1.0/(3*NRandSamples)
-    print originalSavings
+    # num_shells = 51
 
+    # bigHistogram = getDifferentialShapeShellHistogram(Ps, Ns, num_shells,(5,))
+    # scaledHistogram = getDifferentialShapeShellHistogram(Ps, Ns, num_shells,(3,4,5))
+    # # Calculate savings versus a traditional histogram
+    # newPointCloud = getSamplePointsFrom2DHistogram(NRandSamples, bigHistogram)
+    # savings = calculateHistogramSize(scaledHistogram)*1.0/calculateHistogramSize(bigHistogram)
+    # print savings
+    # # Calculate savings versus the original mesh
+    # originalSavings = calculateHistogramSize(scaledHistogram)*1.0/(3*NRandSamples)
+    # print originalSavings
+
+    # # Now we'll export this point cloud. Normals will be completely wrong because we never calculated them
+    # exportPointCloud(newPointCloud,Ns,"ReconstructedCloud.pts")
+    # newPointCloud = getSamplePointsFrom2DHistogram(NRandSamples, scaledHistogram)
+    # # Now we'll export this point cloud. Normals will be completely wrong because we never calculated them
+    # exportPointCloud(newPointCloud,Ns,"ReconstructedCloudScaling.pts")
+
+    RMax = 2
+    res = 3
+    numHarmonics = 15
+    numSphereSamples = getSphereSamples(res).shape[1]
+    cutoff_shells = NRandSamples*3.0/numSphereSamples
+    num_shells = 100
+    
+    
+    spaceUsed = (numHarmonics*numHarmonics + 2*numHarmonics + 1) * num_shells
+    cutoff_harmonics = Math.sqrt(numSphereSamples) - 1
+    
+    # I set num shells to 100, the distance to 10, and the number of sphere samples to 258.
+    # histogram = getShapeShellHistogram(Ps, Ns, num_shells, RMax,getSphereSamples(3))
+    [h_approx, h] = getSphericalHarmonicMagnitudes(Ps, Ns, RMax, numHarmonics, num_shells, 1)
+    
+    # Note this method assumes res is equal to 3. Sampling 1000 samples. 
+    newPointCloud = getSamplePointsFrom2DHistogram(NRandSamples, h, 1.0*RMax/num_shells)
+    newPointCloud2 = getSamplePointsFrom2DHistogram(NRandSamples, h_approx, 1.0*RMax/num_shells)
     # Now we'll export this point cloud. Normals will be completely wrong because we never calculated them
-    exportPointCloud(newPointCloud,Ns,"ReconstructedCloud.pts")
-    newPointCloud = getSamplePointsFrom2DHistogram(NRandSamples, scaledHistogram)
-    # Now we'll export this point cloud. Normals will be completely wrong because we never calculated them
-    exportPointCloud(newPointCloud,Ns,"ReconstructedCloudScaling.pts")
+    exportPointCloud(newPointCloud,Ns,"h_withPhase_15.pts")
+    exportPointCloud(newPointCloud2,Ns,"h_approx_withPhase_15.pts")
