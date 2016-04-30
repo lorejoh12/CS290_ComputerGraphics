@@ -245,7 +245,6 @@ def computeUnraveledFMatrix(NHarmonics, res, magnitude = True):
     F = np.zeros((numCols, B))+0j
     i = 0
     for m in range(0, NHarmonics):
-        # print "   m: "+str(m)
         for l in range(-m, m+1):
             if(magnitude):
                 F0 = np.absolute(sph_harm(l, m, Bs[:,0] , Bs[:,1]))
@@ -299,9 +298,12 @@ def getSphericalHarmonicMagnitudes(Ps, Ns, NHarmonics, NSpheres, SPointRange):
         H = F.dot(h)
 
         h_approx = np.absolute(F.T.dot(H))
-        h_approx = np.floor(np.sum(h)*1.0*h_approx/np.sum(h_approx))
+                
+        h_approx = np.floor(np.sum(h)*10.0*h_approx/np.sum(h_approx))/10.0
+        h_approx = np.sum(h)*1.0*h_approx/np.sum(h_approx)
         h_approx = h_approx.T
         h=h.T
+        
         # Add the shell's data to the overall data output
         allH.append((RMin,RMax,res,h,distanceIncrement/shellIncrement))
         allHApprox.append((RMin,RMax,res,h_approx,distanceIncrement/shellIncrement))
