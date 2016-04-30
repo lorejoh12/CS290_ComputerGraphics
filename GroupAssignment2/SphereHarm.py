@@ -336,7 +336,7 @@ if __name__ == '__main__':
         exit(1)
     filename = args[1]
     output_name = args[2]
-    approx_name = output_name.replace(".off","_approx.off")
+    approx_name = output_name.replace(".pts","_approx.pts")
     n_rand_samples = int(args[3])
     num_harmonics = int(args[4])
     num_shells = int(args[5])
