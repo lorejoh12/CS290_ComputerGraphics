@@ -330,13 +330,14 @@ if __name__ == '__main__':
     args = sys.argv
     if len(args)<7:
         print "Need more args... Usage: "
-        print "python SphereHarm.py InputFilename.off OutputFilename.off NumSamplePoints"
+        print "python SphereHarm.py InputFilename.off OutputFilename.pts NumSamplePoints"
         print "NumHarmonics NumShells ShellSampleAmount"
         print "Where ShellSampleAmount is a JSON array of all the sphere sampling values"
         exit(1)
     filename = args[1]
     output_name = args[2]
     approx_name = output_name.replace(".pts","_approx.pts")
+    original_name = output_name.replace(".pts","_original.pts")
     n_rand_samples = int(args[3])
     num_harmonics = int(args[4])
     num_shells = int(args[5])
@@ -352,3 +353,4 @@ if __name__ == '__main__':
     # Now we'll export this point cloud. Normals will be completely wrong because we never calculated them
     exportPointCloud(new_point_cloud,Ns,output_name)
     exportPointCloud(new_approx_point_cloud,Ns,approx_name)
+    exportPointCloud(Ps,Ns,original_name)
