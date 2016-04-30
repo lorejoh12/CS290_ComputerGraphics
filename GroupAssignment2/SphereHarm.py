@@ -7,6 +7,16 @@ from scipy.special import sph_harm
 import json
 
 #########################################################
+##                     SUMMARY                         ##
+#########################################################
+# This script contains functions to take a mesh, sample the point cloud randomly,
+# Perform transformations on the mesh using spherical harmonics, and randomly sample
+# The resulting histogram to recover a modified version of the original with the 
+# Goal of reducing noise in the image. The project currently is deemed as unsuccessful
+# As it introduces more quantization noise than it removes without using a large amount
+# Of data and a lot of time.
+
+#########################################################
 ##                UTILITY FUNCTIONS                    ##
 #########################################################
 
@@ -48,20 +58,22 @@ def getSphereSamples(res = 2):
     m = getSphereMesh(1, res)
     return m.VPos.T
 
+#########################################################
+##                Primary FUNCTIONS                    ##
+#########################################################
+
 #Purpose: To create shape histogram with concentric spherical shells and
 #sectors within each shell, sorted in decreasing order of number of points
 #Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals) (not needed here
 #but passed along for consistency), NShells (number of shells), 
-#RMax (maximum radius), SPoints: A 3 x S array of points sampled evenly on
-#RMin (minimum radius), 
-#the unit sphere (get these with the function "getSphereSamples")
+#RMin (minimum radius), RMax (maximum radius), SPoints: A 3 x S array of points sampled evenly on
+#the unit sphere (with the function "getSphereSamples")
 def getShapeShellHistogram(Ps, Ns, NShells,RMin, RMax, SPoints):
     # Remove any points below RMin from the origin
     pointDistances = np.linalg.norm(Ps, axis=0)
     filteredElems = Ps[:,pointDistances>=RMin]
 
-    NSectors = SPoints.shape[1] #A number of sectors equal to the number of
-    #points sampled on the sphere
+    NSectors = SPoints.shape[1] #A number of sectors equal to the number of points sampled on the sphere
     # First, dot product all points in Ps against all points in SPoints.
     # We're doing a matrix multiplication of Ps^T with SPoints. This will give an NxM matrix
     # Where the rows are the dot product magnitudes of each point of Ps with all the points in SPoints
@@ -76,25 +88,27 @@ def getShapeShellHistogram(Ps, Ns, NShells,RMin, RMax, SPoints):
         sectorElems = filteredElems[:,maximums==i] # Select every element in the given sector
         sectorHistogram=np.array(np.histogram(np.linalg.norm(sectorElems,axis=0),NShells,(RMin,RMax))[0])[np.newaxis].T # Create a histogram for the sector in Column form
         hist=np.hstack((hist,sectorHistogram)) # Add the column to the histogram
-      
     return hist
 
 #Purpose: To create a shape shell histogram using differential sampling of concentric spherical shells.
-# meant to differentiate the sampling volume difference for further away sectors
-# Note: Rmax is automatically calculated by this algorithm
+#meant to differentiate the sampling volume difference for further away sectors
+#Note: Rmax is automatically calculated by this algorithm
 #Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals) (not needed here
 #but passed along for consistency), NShells (number of shells), 
-#RMax (maximum radius), SPointRange: A range of spoint sampling rates to be spread linearly
-#amongst the shells in RMax. i.e. if 4 numbers are given in the range, the first will be used for 0-RMax/4
-#Returns an array of tuples of (innerShellRadius, outerShellRadius, SValue, ShapeShellHistogram, ShellWidth)
-
+#PointRange: A range of spoint sampling rates to be spread linearly amongst the shells in RMax. 
+#i.e. if 4 numbers are given in the range, the first will be used for 0-RMax/4, the second for RMax/4+1 to RMax/2
+#Returns an array of tuples of (innerShellRadius, outerShellRadius, SValue, ShapeShellHistogram, ShellWidth) which is essentially
+#a piecewise histogram definition
 def getDifferentialShapeShellHistogram(Ps, Ns, NShells, SPointRange):
+    # Automatically identify the maximum radius of a point
     pointDistances = np.linalg.norm(Ps, axis=0)
     Rmax = np.amax(pointDistances,) 
     # Figure out how many different sampling rates we're dealing with
     numSampleIncrements = len(SPointRange)
+    # Come up with the distance between shell groups and the number of shells in a group
     distanceIncrement = 1.0*Rmax/numSampleIncrements
     shellIncrement = 1.0*NShells/numSampleIncrements
+    # Input range check
     if (math.ceil(shellIncrement)!=math.floor(shellIncrement)):
         print "Warning: NShells should be integer divisible by the number of sample increments"
     shellIncrement=math.floor(shellIncrement)
@@ -134,16 +148,19 @@ def getMinimumAngleAmongPoints(SPoints):
     # now that we have the first point and the closest point to it, return the angle between them
     return getAngleBetweenTwoUnitVectors(firstPoint, neighborPoint)
     
-#Returns a point cloud from a 2D histogram
+#Returns a point cloud from a 2D histogram set of the form (innerShellRadius, outerShellRadius, SValue, ShapeShellHistogram, ShellWidth)
 #The point cloud is generated with random sampling
-# numSamples is the overall number of sectors to use in the sampling
-# hist is the histogram in the format ((Rmin,Rmax,SValue, Histogram)) for a special shell sampled with differential sampling
+#numSamples is the overall number of sectors to use in the sampling, histogram is the piecewise histogram as described above for a differential shell sampling
 def getSamplePointsFrom2DHistogram(numSamples, histogram):
+    # Figure out how to divide the points amongst sections by their weights
     numSections = len(histogram)
-    pointsPerSection = numSamples/numSections
-    # initialize Ps
+    totalHistogramPoints = 0
+    for i in range(numSections):
+        totalHistogramPoints+=np.sum(histogram[i][3])
+    # Initialize Ps
     Ps = np.zeros((3,numSamples))
     sampleNum=0
+    # Look at each histogram portion and randomly sample the points
     for j in range(numSections):
         shellHist = histogram[j]
         RMin = shellHist[0]
@@ -152,6 +169,8 @@ def getSamplePointsFrom2DHistogram(numSamples, histogram):
         hist = shellHist[3]
         shellWidth = shellHist[4]
         SPoints = getSphereSamples(SVal)
+        # Figure out how many points this sector should get
+        pointsPerSection = np.sum(hist)*1.0/totalHistogramPoints*numSamples
         # this is the angle between the two nearest sampled points
         # which is the same as the angle of the sampled cone around the vectors
         angle = getMinimumAngleAmongPoints(SPoints)
@@ -160,7 +179,7 @@ def getSamplePointsFrom2DHistogram(numSamples, histogram):
         # get random samples of indexes of sectors
         randomSectorIndexes = np.random.choice(len(flatProbabilities), pointsPerSection, p=flatProbabilities)
         histWidth = hist.shape[1]
-        
+        # Sample random points
         for i in range(0, len(randomSectorIndexes)):
             index = randomSectorIndexes[i]
             # calculate the INDEXES of the shell and sector
@@ -191,7 +210,6 @@ def getSamplePointsFrom2DHistogram(numSamples, histogram):
             Ps[1,sampleNum] = ret[1]
             Ps[2,sampleNum] = ret[2]
             sampleNum+=1
-        
     return Ps
         
 def convertRectangularToPolar(x, y, z):
