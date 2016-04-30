@@ -1098,7 +1098,7 @@ if __name__ == '__main__':
     
     
     spaceUsed = (numHarmonics*numHarmonics + 2*numHarmonics + 1) * num_shells
-    cutoff_harmonics = Math.sqrt(numSphereSamples) - 1
+    cutoff_harmonics = np.sqrt(numSphereSamples) - 1
     
     # I set num shells to 100, the distance to 10, and the number of sphere samples to 258.
     # histogram = getShapeShellHistogram(Ps, Ns, num_shells, RMax,getSphereSamples(3))
