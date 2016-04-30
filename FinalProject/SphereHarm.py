@@ -107,11 +107,13 @@ def getMinimumAngleAmongPoints(SPoints):
     # now that we have the first point and the closest point to it, return the angle between them
     return getAngleBetweenTwoUnitVectors(firstPoint, neighborPoint)
 
-# Calculate the size of a histogram. This is used for extimating space savings
+# Calculate the size of a histogram. This is used for extimating space savings. Assumes data will be stored in a tuple of x,y,data along with shell definitions
 def calculateHistogramSize(histogram):
     size=0
     for i in range(len(histogram)):
-        size+=histogram[i][3].shape[0]*histogram[i][3].shape[1]
+        histogramNonZero = histogram[i][3][(histogram[i][3]>0)]
+        size+=2 # Add 2 for shell spacing and sector amount recording 
+        size+=histogramNonZero.shape[0]*3 #Add 3 ints for each nonzero point (shell,sector,value)
     return size
 
 
@@ -361,6 +363,10 @@ if __name__ == '__main__':
     [h_approx,h] = getSphericalHarmonicMagnitudes(Ps, Ns, num_harmonics, num_shells, shell_samples)
     new_approx_point_cloud = getSamplePointsFrom2DHistogram(n_rand_samples, h_approx)
     new_point_cloud = getSamplePointsFrom2DHistogram(n_rand_samples, h)
+    print "Basic point cloud savings"
+    print calculateHistogramSize(h)*1.0/(3*n_rand_samples)
+    print "Spherical harmonics savings"
+    print calculateHistogramSize(h_approx)*1.0/(3*n_rand_samples)
     # Now we'll export this point cloud. Normals will be completely wrong because we never calculated them
     exportPointCloud(new_point_cloud,Ns,output_name)
     exportPointCloud(new_approx_point_cloud,Ns,approx_name)
