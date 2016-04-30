@@ -251,9 +251,6 @@ def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
     w = w[idx]
     v = v[:,idx]
     
-    #print w
-    #print v
-        
     # need to align the v axis to the coordinate axis
     # R dot A = B
     # R = B dot A^-1 = B dot A.T (because A and B are orthonormal)
@@ -271,10 +268,7 @@ def getSpinImage(Ps, Ns, NAngles, Extent, Dim):
     idx = w.argsort()[::1]   
     w = w[idx]
     v = v[:,idx]
-    
-    #print w
-    #print v
-    
+
     theta = 2*3.14159654/NAngles
     c = np.cos(theta)
     s = np.sin(theta)
@@ -361,17 +355,57 @@ def computeFMatrix(NHarmonics, res=2, magnitude = True):
     F = np.zeros((NHarmonics, B))+0j
     for m in range(0, NHarmonics):
         # the paper ignores "l" (the degree) by summing up degrees from -m to m
-        if(magnitude):
-            F0 = np.absolute(sph_harm(-m, m, Bs[:,0] , Bs[:,1]))
-        else:
-            F0 = sph_harm(np.abs(-m), m, Bs[:,0] , Bs[:,1])
-            
+        # for some reason the equation in the paper also uses the absolute value of l
+        F0 = sph_harm(-m, m, Bs[:,0] , Bs[:,1])
+
         for l in range(-m+1, m+1):
-            F0 += np.absolute(sph_harm(l, m, Bs[:,0] , Bs[:,1]))
+            F0 += sph_harm(np.abs(l), m, Bs[:,0] , Bs[:,1])
+            
         F[m, :] = F0
     
+    if(magnitude):
+        F = np.absolute(F)
+        
     return F
 
+# this computes a modified F matrix from the one in the paper. Rather than
+# wrapping all of the "l" values into a single "m" column, this unravels it
+# to have a separate column for each (m, l) combination.
+# NHarmonics = number of "m" values, so this generates a matrix
+# with (NHarmonics+1)^2 rows
+def computeUnraveledFMatrix(NHarmonics, res=2, magnitude = True):    
+    SPoints = getSphereSamples(res)
+    B = SPoints.shape[1]
+    
+    # here we construct the Bs matrix, which is a Bx2 matrix containing the theta, phi values for every point on the sampled sphere (converting rectantular to polar)
+    Bs = np.zeros((B, 2))
+    for i in range(0, B):
+        x = SPoints[0, i]
+        y = SPoints[1, i]
+        z = SPoints[2, i]
+        [theta, phi] = convertRectangularToPolar(x, y, z)
+        Bs[i] = np.array([theta, phi])
+    
+    # Calculate the spherical harmonics matrix
+    numCols = NHarmonics*NHarmonics + 2*NHarmonics + 1
+    F = np.zeros((numCols, B))+0j
+    i = 0
+    
+    # we make a separate column for each (m, l) combination. We also don't take the abs(l) when computing
+    for m in range(0, NHarmonics):
+        for l in range(-m, m+1):
+            if(magnitude):
+                F0 = np.absolute(sph_harm(l, m, Bs[:,0] , Bs[:,1]))
+            else:
+                F0 = sph_harm(l, m, Bs[:,0] , Bs[:,1])
+            F[i, :] = F0
+            i = i+1
+
+    if(magnitude):
+        F = np.absolute(F)
+        
+    return F    
+    
 #Purpose: To create a histogram of spherical harmonic magnitudes in concentric spheres
 #Inputs: Ps (3 x N point cloud), Ns (3 x N array of normals, not used here), RMax: maximum 
 # radius, NHarmonics: the number of spherical harmonics, NSpheres: the number of spheres,
@@ -538,7 +572,6 @@ def getPrecisionRecall(D, NPerClass = 10):
     
     rowIndex = 0
     for row in ind:
-        print "row index:",rowIndex
         numFound = 0
         numSearched = 0
         position = 0
@@ -557,37 +590,33 @@ def getPrecisionRecall(D, NPerClass = 10):
                 toAdd = 1.0 * numFound / numSearched
                 PR[numFound-1] += toAdd
             position += 1
-        
-        print "\tPR:",PR
-        
+                
         rowIndex += 1
-    
-    print PR
-    
+        
     # at the end, divide PR by rowIndex (number of rows)
     PR = 1.0 * PR / rowIndex
     
     return PR
     
-def runExperiments():
-    SPoints = getSphereSamples(2)
-    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, 10, 2)
-    HistsShellSector= makeAllHistograms(PointClouds, Normals, getShapeShellHistogram, 10, 2, SPoints)
-    HistsShellPCA = makeAllHistograms(PointClouds, Normals, getShapeHistogramPCA, 10, 2)
-    #HistsEGI = makeAllHistograms(PointClouds, Normals, getEGIHistogram, SPoints)
-    #HistsA3 = makeAllHistograms(PointClouds, Normals, getA3Histogram, 30, 30000)
+def runExperiments(res = 3):
+    SPoints = getSphereSamples(res)
+    NHarmonics = 20
+    NSpheres = 32 # value used by the paper
+    
+    HistsShell = makeAllHistograms(PointClouds, Normals, getShapeHistogram, NSpheres, 2)
+    HistsShellSector= makeAllHistograms(PointClouds, Normals, getShapeShellHistogram, NSpheres, 0, 2, SPoints)
+    HistsShellPCA = makeAllHistograms(PointClouds, Normals, getShapeHistogramPCA, NSpheres, 2)
     HistsD2 = makeAllHistograms(PointClouds, Normals, getD2Histogram, 3.0, 30, 30000)
     HistsSpin = makeAllHistograms(PointClouds, Normals, getSpinImage, 100, 2, 40)
     
-    F = computeFMatrix(9)
+    # take the magnitudes and drop the phase
+    F = computeFMatrix(NHarmonics, res, True)
     
-    HistsSpherical = makeAllHistograms(PointClouds, Normals, getSphericalHarmonicMagnitudes, 2, 7, 32, F)
-
+    HistsSpherical = makeAllHistograms(PointClouds, Normals, getSphericalHarmonicMagnitudes, 2, NHarmonics, NSpheres, F, res)
+    
     DS = compareHistsEuclidean(HistsShell)
     DSS = compareHistsEuclidean(HistsShellSector)
     DSPCA = compareHistsEuclidean(HistsShellPCA)
-    #DEGI = compareHistsEuclidean(HistsEGI)
-    #DA3 = compareHistsEuclidean(HistsA3)
     DD2 = compareHistsEuclidean(HistsD2)
     DSpin = compareHistsEuclidean(HistsSpin)
     DSpherical = compareHistsEuclidean(HistsSpherical)
@@ -595,8 +624,6 @@ def runExperiments():
     PRS = getPrecisionRecall(DS)
     PRSS = getPrecisionRecall(DSS)
     PRSPCA = getPrecisionRecall(DSPCA)
-    # PREGI = getPrecisionRecall(DEGI)
-    #PRA3 = getPrecisionRecall(DA3)
     PRD2 = getPrecisionRecall(DD2)
     PRSpin = getPrecisionRecall(DSpin)
     PRSpherical = getPrecisionRecall(DSpherical)
@@ -606,8 +633,6 @@ def runExperiments():
     plt.hold(True)
     plt.plot(recalls, PRSS, 'g', label='ShellSector')
     plt.plot(recalls, PRSPCA, 'y', label='ShellPCA')
-    #plt.plot(recalls, PREGI, 'm', label='EGI')    
-    #plt.plot(recalls, PRA3, 'k', label='A3')
     plt.plot(recalls, PRD2, 'r', label='D2')
     plt.plot(recalls, PRSpin, 'b', label='Spin')
     plt.plot(recalls, PRSpherical, 'm', label='Spherical')
